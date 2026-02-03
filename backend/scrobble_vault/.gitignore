@@ -3,6 +3,13 @@
 
 # Python virtual environment
 .venv/
+venv/
+env/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
 
 # SQLite database file
 scrobbles_vault.db
