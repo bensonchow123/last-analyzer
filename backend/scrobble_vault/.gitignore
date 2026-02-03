@@ -1,0 +1,8 @@
+# App environment variables
+.env
+
+# Python virtual environment
+.venv/
+
+# SQLite database file
+scrobbles_vault.db
