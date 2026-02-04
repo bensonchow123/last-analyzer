@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: scrobble_vault_DB
+    restart: always
+    environment:
+      - POSTGRES_DB=scrobble_vault
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - scrobble_vault_DB_data:/var/lib/postgresql/data
+
+volumes:
+  scrobble_vault_DB_data:
