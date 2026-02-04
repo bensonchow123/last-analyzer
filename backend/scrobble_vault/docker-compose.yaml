@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - scrobble_vault_DB_data:/var/lib/postgresql/data
+      - scrobble_vault_DB_data:/var/lib/postgresql/
 
 volumes:
   scrobble_vault_DB_data:
