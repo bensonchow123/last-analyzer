@@ -1,4 +1,5 @@
 import time
+import logging
 
 import asyncpg
 
@@ -31,6 +32,10 @@ async def init_sync_table():
             VALUES ('last_sync_time', 0, 0)
             ON CONFLICT (key) DO NOTHING
         ''')
+
+    except (OSError, asyncpg.PostgresError):
+        logging.error("Failed to initialize the syncing table.")
+
     finally:
         await conn.close()
 
@@ -42,6 +47,11 @@ async def get_last_sync_time() -> int:
             "SELECT value FROM sync_lastfm WHERE key = 'last_sync_time'"
         )
         return row['value'] if row else 0
+    
+    except (OSError, asyncpg.PostgresError):
+        logging.exception("Could not read last sync time")
+        return 0
+    
     finally:
         await conn.close()
 
@@ -54,5 +64,9 @@ async def update_last_sync_time(timestamp: int):
             SET value = $1, updated_at = $2
             WHERE key = 'last_sync_time'
         ''', timestamp, int(time.time()))
+        
+    except (OSError, asyncpg.PostgresError):
+        logging.exception("Could not update last sync time")
+
     finally:
         await conn.close()
