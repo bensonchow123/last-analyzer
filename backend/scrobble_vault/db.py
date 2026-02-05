@@ -1,3 +1,5 @@
+import time
+
 import asyncpg
 
 from env import env
@@ -7,27 +9,33 @@ async def get_db_connection():
     return await asyncpg.connect(env.DATABASE_URL)
 
 async def init_sync_table():
-    """Initialize the database schema."""
+    """
+    Initialize the database schema.
+    Schema:
+        - key: Unique identifier (last_sync_time).
+        - value: The Unix timestamp of the last scrobble successfully synced.
+        - updated_at: The Unix timestamp of when the database row was last written to.
+    """
     conn = await get_db_connection()
     try:
         await conn.execute('''
             CREATE TABLE IF NOT EXISTS sync_lastfm (
                 key VARCHAR(50) PRIMARY KEY,
                 value BIGINT NOT NULL,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                updated_at BIGINT NOT NULL
             )
         ''')
         # Insert initial value if not exists
         await conn.execute('''
-            INSERT INTO sync_lastfm (key, value)
-            VALUES ('last_sync_time', 0)
+            INSERT INTO sync_lastfm (key, value, updated_at)
+            VALUES ('last_sync_time', 0, 0)
             ON CONFLICT (key) DO NOTHING
         ''')
     finally:
         await conn.close()
 
 async def get_last_sync_time() -> int:
-    """Get the last sync time from the database."""
+    """Get the last successful scrobble sync time from the database."""
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow(
@@ -38,13 +46,13 @@ async def get_last_sync_time() -> int:
         await conn.close()
 
 async def update_last_sync_time(timestamp: int):
-    """Update the last sync time in the database."""
+    """Update the last sync time row in the database."""
     conn = await get_db_connection()
     try:
         await conn.execute('''
-            UPDATE sync_lastfm 
-            SET value = $1, updated_at = NOW() 
+            UPDATE sync_lastfm
+            SET value = $1, updated_at = $2
             WHERE key = 'last_sync_time'
-        ''', timestamp)
+        ''', timestamp, int(time.time()))
     finally:
         await conn.close()
