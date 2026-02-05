@@ -3,3 +3,4 @@ aiohttp
 aiocron
 aiosqlite
 python-dotenv
+asyncpg

@@ -1,6 +1,3 @@
-# App environment variables
-.env
-
 # Python virtual environment
 .venv/
 venv/
@@ -10,6 +7,3 @@ env/
 __pycache__/
 *.py[cod]
 *$py.class
-
-# SQLite database file
-scrobbles_vault.db
