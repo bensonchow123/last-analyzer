@@ -1,8 +1,8 @@
 import time
 import logging
 
-from db import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
-from last_fm import fetch_last_fm_data
+from db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
+from services.last_fm import fetch_last_fm_data
 
 logger = logging.getLogger(__name__)
 

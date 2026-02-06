@@ -22,7 +22,7 @@ async def init_sync_table():
     conn = await get_db_connection()
     try:
         await conn.execute('''
-            CREATE TABLE IF NOT EXISTS sync_lastfm (
+            CREATE TABLE IF NOT EXISTS last_sync (
                 key VARCHAR(50) PRIMARY KEY,
                 value BIGINT NOT NULL,
                 updated_at BIGINT NOT NULL
@@ -30,7 +30,7 @@ async def init_sync_table():
         ''')
         # Insert initial value if not exists
         await conn.execute('''
-            INSERT INTO sync_lastfm (key, value, updated_at)
+            INSERT INTO last_sync (key, value, updated_at)
             VALUES ('last_sync_time', 0, 0)
             ON CONFLICT (key) DO NOTHING
         ''')
@@ -54,7 +54,7 @@ async def get_last_synced_scrobble() -> int | None:
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow(
-            "SELECT value FROM sync_lastfm WHERE key = 'last_sync_time'"
+            "SELECT value FROM last_sync WHERE key = 'last_sync_time'"
         )
         return row['value'] if row else None
     
@@ -70,7 +70,7 @@ async def update_last_synced_scrobble(timestamp: int):
     conn = await get_db_connection()
     try:
         await conn.execute('''
-            UPDATE sync_lastfm
+            UPDATE last_sync
             SET value = $1, updated_at = $2
             WHERE key = 'last_sync_time'
         ''', timestamp, int(time.time()))
@@ -81,6 +81,3 @@ async def update_last_synced_scrobble(timestamp: int):
 
     finally:
         await conn.close()
-
-async def init_scrobbles_db():
-    pass

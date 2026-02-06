@@ -4,7 +4,7 @@ import logging
 import aiocron
 
 from env import env
-from sync_scrobbles import sync_scrobble_vault
+from services.sync_scrobbles import sync_scrobble_vault
 
 logging.basicConfig(
     level=logging.INFO,
