@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 
@@ -28,6 +29,9 @@ class Env:
     
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        # URL encode the password to handle special characters
+        encoded_password = quote(self.POSTGRES_PASSWORD or '')
+        return f"postgresql://{self.POSTGRES_USER}:{encoded_password}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
+# Initilize the global instance for all files
 env = Env()

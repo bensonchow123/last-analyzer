@@ -1,8 +1,11 @@
 import asyncio
+import logging
 
 import aiohttp
 
 from env import env
+
+logger = logging.getLogger(__name__)
 
 LAST_FM_API_URL = "http://ws.audioscrobbler.com/2.0/"
 
@@ -29,6 +32,7 @@ async def fetch_last_fm_data(
             
             async with session.get(LAST_FM_API_URL, params=params) as response:
                 if response.status != 200:
+                    logger.error(f"Last.fm API error: HTTP {response.status}")
                     raise Exception(f"Last.fm API error: {response.status}")
                 
                 data = await response.json()
@@ -78,7 +82,7 @@ async def fetch_track_tags(session, artist, track, api_key):
                 tag_list = [t['name'] for t in tags[:10]] 
                 return ", ".join(tag_list)
     except Exception as e:
-        print(f"Error fetching tags for {track}: {e}")
+        logger.error(f"Error fetching tags for {track}: {e}")
     return ""
 
 

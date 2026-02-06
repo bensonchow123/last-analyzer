@@ -5,6 +5,8 @@ import asyncpg
 
 from env import env
 
+logger = logging.getLogger(__name__)
+
 async def get_db_connection():
     """Create a connection to the PostgreSQL database."""
     return await asyncpg.connect(env.DATABASE_URL)
@@ -33,29 +35,37 @@ async def init_sync_table():
             ON CONFLICT (key) DO NOTHING
         ''')
 
-    except (OSError, asyncpg.PostgresError):
-        logging.error("Failed to initialize the syncing table.")
+    except (OSError, asyncpg.PostgresError) as e:
+        logger.exception("Failed to initialize the syncing table")
+        raise
 
     finally:
         await conn.close()
 
-async def get_last_sync_time() -> int:
-    """Get the last successful scrobble sync time from the database."""
+async def get_last_synced_scrobble() -> int | None:
+    """
+    Get the last successful scrobble sync time from the database.
+    Returns:
+        - int: The timestamp of the last synced scrobble
+        - None: If no sync record exists (first time sync)
+    Raises:
+        - Exception: If database connection or query fails
+    """
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow(
             "SELECT value FROM sync_lastfm WHERE key = 'last_sync_time'"
         )
-        return row['value'] if row else 0
+        return row['value'] if row else None
     
-    except (OSError, asyncpg.PostgresError):
-        logging.exception("Could not read last sync time")
-        return 0
+    except (OSError, asyncpg.PostgresError) as e:
+        logger.exception("Could not read last sync time")
+        raise
     
     finally:
         await conn.close()
 
-async def update_last_sync_time(timestamp: int):
+async def update_last_synced_scrobble(timestamp: int):
     """Update the last sync time row in the database."""
     conn = await get_db_connection()
     try:
@@ -65,8 +75,12 @@ async def update_last_sync_time(timestamp: int):
             WHERE key = 'last_sync_time'
         ''', timestamp, int(time.time()))
         
-    except (OSError, asyncpg.PostgresError):
-        logging.exception("Could not update last sync time")
+    except (OSError, asyncpg.PostgresError) as e:
+        logger.exception("Could not update last sync time")
+        raise
 
     finally:
         await conn.close()
+
+async def init_scrobbles_db():
+    pass

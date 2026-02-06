@@ -1,19 +1,17 @@
-from pathlib import Path
 import asyncio
+import logging
 
 import aiocron
 
 from env import env
-from db import init_sync_table, get_last_sync_time, update_last_sync_time
+from sync_scrobbles import sync_scrobble_vault
 
-
-async def sync_scrobble_vault():
-    print("Syncing scrobble vault...")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
 
 async def main():
-    # Initialize the database schema
-    await init_sync_table()
-    
     # Sync on startup
     await sync_scrobble_vault()
     
