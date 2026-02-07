@@ -2,14 +2,18 @@ import time
 import logging
 
 from db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
+from db.track import init_tracks_table
 from services.last_fm import fetch_last_fm_data
+from services.sync_new_tracks import sync_new_tracks
 
 logger = logging.getLogger(__name__)
+
 
 async def sync_scrobble_vault():
     """Fetch new scrobbles from last.fm and update the database."""
     # Initialize the database schema, if it is not there yet
     await init_sync_table()
+    await init_tracks_table()
     
     logger.info("Starting scrobble sync...")
     
@@ -27,6 +31,9 @@ async def sync_scrobble_vault():
     scrobbles = scrobble_data.get('scrobbles', [])
     
     if scrobbles:
+        # Fetch and store info for any new unique tracks
+        await sync_new_tracks(scrobbles)
+
         # TODO: Store scrobbles in db
         
         # Update the last synced timestamp to the most recent scrobble

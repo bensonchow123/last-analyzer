@@ -1,5 +1,5 @@
 import asyncpg
-import env
+from env import env
 
 pool: asyncpg.Pool | None = None # the global Postgres connection pool
 

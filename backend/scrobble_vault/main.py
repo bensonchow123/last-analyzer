@@ -4,6 +4,7 @@ import logging
 import aiocron
 
 from env import env
+from db.core import init_db, close_db
 from services.sync_scrobbles import sync_scrobble_vault
 
 logging.basicConfig(
@@ -12,14 +13,23 @@ logging.basicConfig(
 )
 
 async def main():
-    # Sync on startup
-    await sync_scrobble_vault()
+    # Initialize database connection pool
+    await init_db()
+    logging.info("Database connection pool initialized")
     
-    # Register the cron job for the sync
-    aiocron.crontab(f'*/{env.SYNC_INTERVAL_MINUTES} * * * *', func=sync_scrobble_vault)
-    
-    # Keep the event loop running forever
-    await asyncio.Event().wait()
+    try:
+        # Sync on startup
+        await sync_scrobble_vault()
+        
+        # Register the cron job for the sync
+        aiocron.crontab(f'*/{env.SYNC_INTERVAL_MINUTES} * * * *', func=sync_scrobble_vault)
+        
+        # Keep the event loop running forever
+        await asyncio.Event().wait()
+    finally:
+        # Clean up database connection pool on shutdown
+        await close_db()
+        logging.info("Database connection pool closed")
 
 if __name__ == "__main__":
     asyncio.run(main())
