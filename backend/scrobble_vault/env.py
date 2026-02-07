@@ -26,6 +26,8 @@ class Env:
         self.POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'db')
         self.POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5432')
         self.POSTGRES_DB = os.getenv('POSTGRES_DB', 'scrobble_vault')
+        self.POSTGRES_MIN_POOL_SIZE = int(os.getenv('POSTGRES_MIN_POOL_SIZE', 1))
+        self.POSTGRES_MAX_POOL_SIZE = int(os.getenv('POSTGRES_MAX_POOL_SIZE', 5))
     
     @property
     def DATABASE_URL(self) -> str:
