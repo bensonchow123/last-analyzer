@@ -18,11 +18,13 @@ async def main():
     logging.info("Database connection pool initialized")
     
     try:
-        # Sync on startup
+        # Run sync on startup
         await sync_scrobble_vault()
         
-        # Register the cron job for the sync
+        # Register conjob for sync
         aiocron.crontab(f'*/{env.SYNC_INTERVAL_MINUTES} * * * *', func=sync_scrobble_vault)
+        
+        logging.info(f"Scheduled sync every {env.SYNC_INTERVAL_MINUTES} minutes")
         
         # Keep the event loop running forever
         await asyncio.Event().wait()

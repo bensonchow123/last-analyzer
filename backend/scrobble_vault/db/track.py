@@ -26,7 +26,6 @@ async def init_tracks_table():
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS tracks (
                     id SERIAL PRIMARY KEY,
-                    lastfm_id TEXT,
                     name TEXT NOT NULL,
                     track_name_norm TEXT NOT NULL,
                     mbid TEXT,
@@ -110,7 +109,7 @@ async def insert_track(track_info: dict):
         async with core.pool.acquire() as conn:
             await conn.execute('''
                 INSERT INTO tracks (
-                    lastfm_id, name, track_name_norm, mbid, url, duration,
+                    name, track_name_norm, mbid, url, duration,
                     streamable, streamable_fulltrack,
                     artist_name, artist_name_norm, artist_mbid, artist_url,
                     album_title, album_artist, album_mbid, album_url, album_position,
@@ -119,18 +118,17 @@ async def insert_track(track_info: dict):
                     wiki_published, wiki_summary, wiki_content,
                     user_loved, user_playcount
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6,
-                    $7, $8,
-                    $9, $10, $11, $12,
-                    $13, $14, $15, $16, $17,
-                    $18, $19, $20, $21,
-                    $22,
-                    $23, $24, $25,
-                    $26, $27
+                    $1, $2, $3, $4, $5,
+                    $6, $7,
+                    $8, $9, $10, $11,
+                    $12, $13, $14, $15, $16,
+                    $17, $18, $19, $20,
+                    $21,
+                    $22, $23, $24,
+                    $25, $26
                 )
                 ON CONFLICT (artist_name_norm, track_name_norm) DO NOTHING
             ''',
-                str(track_info.get('id', '')) or None,
                 track_info.get('name'),
                 normalize(track_info.get('name', '')),
                 track_info.get('mbid') or None,

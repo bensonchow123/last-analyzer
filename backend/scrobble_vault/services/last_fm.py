@@ -133,3 +133,95 @@ async def fetch_track_info(session, artist=None, track=None, mbid=None, username
     return {}
 
 
+async def fetch_album_info(session, artist=None, album=None, mbid=None, username=None, autocorrect=1):
+    """
+    Fetch album info from last.fm api.
+    Docs at https://www.last.fm/api/show/album.getInfo
+
+    Args:
+        session: aiohttp ClientSession
+        artist (Optional): The artist name
+        album (Optional): The album name
+        mbid (Optional): The musicbrainz id for the album
+        username (Optional): The username for context (includes playcount)
+        autocorrect (Optional): 0 or 1, transforms misspelled artist names
+
+    Note: Either mbid OR (artist AND album) must be provided
+    """
+    params = {
+        'method': 'album.getInfo',
+        'api_key': env.LAST_FM_API_KEY,
+        'format': 'json',
+        'autocorrect': autocorrect
+    }
+
+    if mbid:
+        params['mbid'] = mbid
+    else:
+        if not artist or not album:
+            logger.error("Either mbid OR (artist AND album) must be provided")
+            return {}
+        params['artist'] = artist
+        params['album'] = album
+
+    if username:
+        params['username'] = username
+
+    try:
+        async with await _rate_limited_get(session, params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get('album', {})
+    except aiohttp.ClientError as e:
+        logger.error(f"Network error fetching album info for {artist} - {album}: {e}")
+    except ValueError as e:
+        logger.error(f"JSON decode error for {artist} - {album}: {e}")
+    return {}
+
+
+async def fetch_artist_info(session, artist=None, mbid=None, username=None, autocorrect=1, lang=None):
+    """
+    Fetch artist info from last.fm api.
+    Docs at https://www.last.fm/api/show/artist.getInfo
+
+    Args:
+        session: aiohttp ClientSession
+        artist (Optional): The artist name
+        mbid (Optional): The musicbrainz id for the artist
+        username (Optional): The username for context (includes playcount)
+        autocorrect (Optional): 0 or 1, transforms misspelled artist names
+        lang (Optional): ISO 639 alpha-2 language code for biography
+
+    Note: Either mbid OR artist must be provided
+    """
+    params = {
+        'method': 'artist.getInfo',
+        'api_key': env.LAST_FM_API_KEY,
+        'format': 'json',
+        'autocorrect': autocorrect,
+    }
+
+    if mbid:
+        params['mbid'] = mbid
+    else:
+        if not artist:
+            logger.error("Either mbid OR artist must be provided")
+            return {}
+        params['artist'] = artist
+
+    if username:
+        params['username'] = username
+
+    if lang:
+        params['lang'] = lang
+
+    try:
+        async with await _rate_limited_get(session, params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get('artist', {})
+    except aiohttp.ClientError as e:
+        logger.error(f"Network error fetching artist info for {artist}: {e}")
+    except ValueError as e:
+        logger.error(f"JSON decode error for {artist}: {e}")
+    return {}

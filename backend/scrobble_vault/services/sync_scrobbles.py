@@ -2,8 +2,12 @@ import time
 import logging
 
 from db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
+from db.album import init_albums_table
+from db.artist import init_artists_table
 from db.track import init_tracks_table
 from services.last_fm import fetch_last_fm_data
+from services.sync_new_albums import sync_new_albums
+from services.sync_new_artists import sync_new_artists
 from services.sync_new_tracks import sync_new_tracks
 
 logger = logging.getLogger(__name__)
@@ -14,6 +18,8 @@ async def sync_scrobble_vault():
     # Initialize the database schema, if it is not there yet
     await init_sync_table()
     await init_tracks_table()
+    await init_albums_table()
+    await init_artists_table()
     
     logger.info("Starting scrobble sync...")
     
@@ -33,6 +39,12 @@ async def sync_scrobble_vault():
     if scrobbles:
         # Fetch and store info for any new unique tracks
         await sync_new_tracks(scrobbles)
+
+        # Fetch and store info for any new unique albums
+        await sync_new_albums(scrobbles)
+
+        # Fetch and store info for any new unique artists
+        await sync_new_artists(scrobbles)
 
         # TODO: Store scrobbles in db
         
