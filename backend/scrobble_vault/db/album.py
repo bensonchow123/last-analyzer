@@ -30,6 +30,7 @@ async def init_albums_table():
                     mbid TEXT,
                     url TEXT,
                     release_date TEXT,
+                    artist_id INTEGER REFERENCES artists(id),
                     artist_name TEXT NOT NULL,
                     artist_name_norm TEXT NOT NULL,
                     image_small TEXT,
@@ -107,10 +108,17 @@ async def insert_album(album_info: dict):
         artist_name = album_info.get('artist', '')
 
         async with core.pool.acquire() as conn:
+            # Resolve the artist foreign key
+            artist_row = await conn.fetchrow(
+                "SELECT id FROM artists WHERE artist_name_norm = $1",
+                normalize(artist_name),
+            )
+            artist_id = artist_row['id'] if artist_row else None
+
             await conn.execute('''
                 INSERT INTO albums (
                     name, album_name_norm, mbid, url, release_date,
-                    artist_name, artist_name_norm,
+                    artist_id, artist_name, artist_name_norm,
                     image_small, image_medium, image_large, image_extralarge,
                     listeners, playcount,
                     toptags, tracks,
@@ -118,12 +126,12 @@ async def insert_album(album_info: dict):
                     user_playcount
                 ) VALUES (
                     $1, $2, $3, $4, $5,
-                    $6, $7,
-                    $8, $9, $10, $11,
-                    $12, $13,
-                    $14, $15,
-                    $16, $17, $18,
-                    $19
+                    $6, $7, $8,
+                    $9, $10, $11, $12,
+                    $13, $14,
+                    $15, $16,
+                    $17, $18, $19,
+                    $20
                 )
                 ON CONFLICT (artist_name_norm, album_name_norm) DO NOTHING
             ''',
@@ -132,6 +140,7 @@ async def insert_album(album_info: dict):
                 album_info.get('mbid') or None,
                 album_info.get('url') or None,
                 album_info.get('releasedate') or None,
+                artist_id,
                 artist_name,
                 normalize(artist_name),
                 _extract_image(images, 'small'),

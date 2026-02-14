@@ -33,10 +33,12 @@ async def init_tracks_table():
                     duration INTEGER,
                     streamable TEXT,
                     streamable_fulltrack TEXT,
+                    artist_id INTEGER REFERENCES artists(id),
                     artist_name TEXT NOT NULL,
                     artist_name_norm TEXT NOT NULL,
                     artist_mbid TEXT,
                     artist_url TEXT,
+                    album_id INTEGER REFERENCES albums(id),
                     album_title TEXT,
                     album_artist TEXT,
                     album_mbid TEXT,
@@ -107,12 +109,31 @@ async def insert_track(track_info: dict):
         user_playcount = int(user_playcount_raw) if user_playcount_raw is not None else None
 
         async with core.pool.acquire() as conn:
+            # Resolve the artist foreign key
+            artist_row = await conn.fetchrow(
+                "SELECT id FROM artists WHERE artist_name_norm = $1",
+                normalize(artist.get('name', '')),
+            )
+            artist_id = artist_row['id'] if artist_row else None
+
+            # Resolve the album foreign key (nullable as not every track has an album)
+            album_id = None
+            album_title = album.get('title') or None
+            album_artist_name = album.get('artist') or artist.get('name', '')
+            if album_title:
+                album_row = await conn.fetchrow(
+                    "SELECT id FROM albums WHERE artist_name_norm = $1 AND album_name_norm = $2",
+                    normalize(album_artist_name),
+                    normalize(album_title),
+                )
+                album_id = album_row['id'] if album_row else None
+
             await conn.execute('''
                 INSERT INTO tracks (
                     name, track_name_norm, mbid, url, duration,
                     streamable, streamable_fulltrack,
-                    artist_name, artist_name_norm, artist_mbid, artist_url,
-                    album_title, album_artist, album_mbid, album_url, album_position,
+                    artist_id, artist_name, artist_name_norm, artist_mbid, artist_url,
+                    album_id, album_title, album_artist, album_mbid, album_url, album_position,
                     album_image_small, album_image_medium, album_image_large, album_image_extralarge,
                     toptags,
                     wiki_published, wiki_summary, wiki_content,
@@ -120,12 +141,12 @@ async def insert_track(track_info: dict):
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     $6, $7,
-                    $8, $9, $10, $11,
-                    $12, $13, $14, $15, $16,
-                    $17, $18, $19, $20,
-                    $21,
-                    $22, $23, $24,
-                    $25, $26
+                    $8, $9, $10, $11, $12,
+                    $13, $14, $15, $16, $17, $18,
+                    $19, $20, $21, $22,
+                    $23,
+                    $24, $25, $26,
+                    $27, $28
                 )
                 ON CONFLICT (artist_name_norm, track_name_norm) DO NOTHING
             ''',
@@ -136,11 +157,13 @@ async def insert_track(track_info: dict):
                 int(track_info['duration']) if track_info.get('duration') else None,
                 str(track_info.get('streamable', {}).get('#text', '')) if isinstance(track_info.get('streamable'), dict) else str(track_info.get('streamable', '')) or None,
                 str(track_info.get('streamable', {}).get('fulltrack', '')) if isinstance(track_info.get('streamable'), dict) else None,
+                artist_id,
                 artist.get('name'),
                 normalize(artist.get('name', '')),
                 artist.get('mbid') or None,
                 artist.get('url') or None,
-                album.get('title') or None,
+                album_id,
+                album_title,
                 album.get('artist') or None,
                 album.get('mbid') or None,
                 album.get('url') or None,
