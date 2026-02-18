@@ -4,6 +4,7 @@ import logging
 import asyncpg
 
 from . import core
+from ai.embeddings import build_album_text, generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ async def init_albums_table():
                     wiki_published TEXT,
                     wiki_summary TEXT,
                     wiki_content TEXT,
-                    user_playcount INTEGER
+                    user_playcount INTEGER,
+                    embedding VECTOR(384)
                 )
             ''')
             # Create unique index on normalized columns
@@ -107,6 +109,16 @@ async def insert_album(album_info: dict):
 
         artist_name = album_info.get('artist', '')
 
+        # Generate embedding
+        embedding = generate_embedding(build_album_text({
+            'name': album_info.get('name'),
+            'artist_name': artist_name,
+            'toptags': toptags,
+            'tracks': tracks,
+            'wiki_content': wiki.get('content'),
+            'wiki_summary': wiki.get('summary')
+        }))
+
         async with core.pool.acquire() as conn:
             # Resolve the artist foreign key
             artist_row = await conn.fetchrow(
@@ -123,7 +135,8 @@ async def insert_album(album_info: dict):
                     listeners, playcount,
                     toptags, tracks,
                     wiki_published, wiki_summary, wiki_content,
-                    user_playcount
+                    user_playcount,
+                    embedding
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     $6, $7, $8,
@@ -131,7 +144,8 @@ async def insert_album(album_info: dict):
                     $13, $14,
                     $15, $16,
                     $17, $18, $19,
-                    $20
+                    $20,
+                    $21
                 )
                 ON CONFLICT (artist_name_norm, album_name_norm) DO NOTHING
             ''',
@@ -155,6 +169,7 @@ async def insert_album(album_info: dict):
                 wiki.get('summary') or None,
                 wiki.get('content') or None,
                 user_playcount,
+                embedding,
             )
         logger.info(f"Inserted album: {artist_name} - {album_info.get('name')}")
     except asyncpg.UniqueViolationError:

@@ -4,3 +4,6 @@ aiocron
 aiosqlite
 python-dotenv
 asyncpg
+sentence-transformers
+pgvector
+numpy

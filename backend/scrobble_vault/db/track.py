@@ -4,6 +4,7 @@ import logging
 import asyncpg
 
 from . import core
+from ai.embeddings import build_track_text, generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ async def init_tracks_table():
                     wiki_summary TEXT,
                     wiki_content TEXT,
                     user_loved BOOLEAN,
-                    user_playcount INTEGER
+                    user_playcount INTEGER,
+                    embedding VECTOR(384)
                 )
             ''')
             # Create unique index on normalized columns
@@ -128,6 +130,16 @@ async def insert_track(track_info: dict):
                 )
                 album_id = album_row['id'] if album_row else None
 
+            # Generate embedding
+            embedding = generate_embedding(build_track_text({
+                'name': track_info.get('name'),
+                'artist_name': artist.get('name'),
+                'album_title': album_title,
+                'toptags': toptags,
+                'wiki_content': wiki.get('content'),
+                'wiki_summary': wiki.get('summary')
+            }))
+
             await conn.execute('''
                 INSERT INTO tracks (
                     name, track_name_norm, mbid, url, duration,
@@ -137,7 +149,8 @@ async def insert_track(track_info: dict):
                     album_image_small, album_image_medium, album_image_large, album_image_extralarge,
                     toptags,
                     wiki_published, wiki_summary, wiki_content,
-                    user_loved, user_playcount
+                    user_loved, user_playcount,
+                    embedding
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     $6, $7,
@@ -146,7 +159,8 @@ async def insert_track(track_info: dict):
                     $19, $20, $21, $22,
                     $23,
                     $24, $25, $26,
-                    $27, $28
+                    $27, $28,
+                    $29
                 )
                 ON CONFLICT (artist_name_norm, track_name_norm) DO NOTHING
             ''',
@@ -178,6 +192,7 @@ async def insert_track(track_info: dict):
                 wiki.get('content') or None,
                 user_loved,
                 user_playcount,
+                embedding,
             )
         logger.info(f"Inserted track: {artist.get('name')} - {track_info.get('name')}")
     except asyncpg.UniqueViolationError:

@@ -4,6 +4,7 @@ import logging
 import asyncpg
 
 from . import core
+from ai.embeddings import build_artist_text, generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,8 @@ async def init_artists_table():
                     bio_published TEXT,
                     bio_summary TEXT,
                     bio_content TEXT,
-                    user_playcount INTEGER
+                    user_playcount INTEGER,
+                    embedding VECTOR(384)
                 )
             ''')
             await conn.execute('''
@@ -100,6 +102,15 @@ async def insert_artist(artist_info: dict):
 
         artist_name = artist_info.get('name', '')
 
+        # Generate embedding
+        embedding = generate_embedding(build_artist_text({
+            'name': artist_name,
+            'tags': tags,
+            'similar_artists': similar,
+            'bio_content': bio_raw.get('content'),
+            'bio_summary': bio_raw.get('summary')
+        }))
+
         async with core.pool.acquire() as conn:
             await conn.execute('''
                 INSERT INTO artists (
@@ -108,14 +119,16 @@ async def insert_artist(artist_info: dict):
                     streamable, listeners, playcount,
                     similar_artists, tags,
                     bio_published, bio_summary, bio_content,
-                    user_playcount
+                    user_playcount,
+                    embedding
                 ) VALUES (
                     $1, $2, $3, $4,
                     $5, $6, $7, $8,
                     $9, $10, $11,
                     $12, $13,
                     $14, $15, $16,
-                    $17
+                    $17,
+                    $18
                 )
                 ON CONFLICT (artist_name_norm) DO NOTHING
             ''',
@@ -136,6 +149,7 @@ async def insert_artist(artist_info: dict):
                 bio_raw.get('summary') or None,
                 bio_raw.get('content') or None,
                 user_playcount,
+                embedding,
             )
         logger.info(f"Inserted artist: {artist_name}")
     except asyncpg.UniqueViolationError:
