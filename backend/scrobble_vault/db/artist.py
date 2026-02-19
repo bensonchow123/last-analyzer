@@ -4,7 +4,7 @@ import logging
 import asyncpg
 
 from . import core
-from ai.embeddings import build_artist_text, generate_embedding
+from ai.embeddings import build_artist_text, generate_embedding_async
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ async def insert_artist(artist_info: dict):
         artist_name = artist_info.get('name', '')
 
         # Generate embedding
-        embedding = generate_embedding(build_artist_text({
+        embedding = await generate_embedding_async(build_artist_text({
             'name': artist_name,
             'tags': tags,
             'similar_artists': similar,

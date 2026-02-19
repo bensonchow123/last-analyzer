@@ -4,7 +4,7 @@ import logging
 import asyncpg
 
 from . import core
-from ai.embeddings import build_track_text, generate_embedding
+from ai.embeddings import build_track_text, generate_embedding_async
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ async def insert_track(track_info: dict):
                 album_id = album_row['id'] if album_row else None
 
             # Generate embedding
-            embedding = generate_embedding(build_track_text({
+            embedding = await generate_embedding_async(build_track_text({
                 'name': track_info.get('name'),
                 'artist_name': artist.get('name'),
                 'album_title': album_title,

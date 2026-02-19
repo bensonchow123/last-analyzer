@@ -4,7 +4,7 @@ import logging
 import asyncpg
 
 from . import core
-from ai.embeddings import build_album_text, generate_embedding
+from ai.embeddings import build_album_text, generate_embedding_async
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ async def insert_album(album_info: dict):
         artist_name = album_info.get('artist', '')
 
         # Generate embedding
-        embedding = generate_embedding(build_album_text({
+        embedding = await generate_embedding_async(build_album_text({
             'name': album_info.get('name'),
             'artist_name': artist_name,
             'toptags': toptags,

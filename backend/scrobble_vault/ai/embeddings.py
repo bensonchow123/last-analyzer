@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any
@@ -134,3 +135,10 @@ def generate_embedding(text: str) -> np.ndarray:
     """Encode a single text string into a 384-dim float32 vector."""
     model = get_model()
     return model.encode(text, normalize_embeddings=True)
+
+
+async def generate_embedding_async(text: str) -> np.ndarray:
+    """
+    Use thread pool to run the embedding so the asynic loop is not blocked.
+    """
+    return await asyncio.to_thread(generate_embedding, text)
