@@ -3,14 +3,20 @@ services:
     image: pgvector/pgvector:pg18-trixie
     container_name: scrobble_vault_DB
     restart: always
-    environment:
+    environment: # env for DB initalization
       - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_SUPER_USER} # the container needs this specific variable for the superuser
+      - POSTGRES_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD} # the container needs this specific variable for the superuser
+      - POSTGRES_SUPER_USER=${POSTGRES_SUPER_USER}
+      - POSTGRES_SUPER_USER_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD}
+      - POSTGRES_READ_ONLY_USER=${POSTGRES_READ_ONLY_USER}
+      - POSTGRES_READ_ONLY_USER_PASSWORD=${POSTGRES_READ_ONLY_USER_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
+      # Persistant storage
       - scrobble_vault_DB_data:/var/lib/postgresql/
-
+      # relative_host_path:container_path:read_only_permission, to create read only user on first run.
+      - ./backend/scrobble_vault/init_read_only_user.sh:/docker-entrypoint-initdb.d/init_read_only_user.sh:ro # 
 volumes:
   scrobble_vault_DB_data:
