@@ -3,9 +3,9 @@ import logging
 
 import aiocron
 
-from env import env
-from db.core import init_db, close_db
-from services.sync_scrobbles import sync_scrobble_vault
+from scrobble_vault.env import env
+from scrobble_vault.db.core import init_db, close_db
+from scrobble_vault.services.sync_scrobbles import sync_scrobble_vault
 
 logging.basicConfig(
     level=logging.INFO,

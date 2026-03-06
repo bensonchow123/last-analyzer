@@ -4,7 +4,7 @@ import time
 
 import aiohttp
 
-from env import env
+from scrobble_vault.env import env
 
 logger = logging.getLogger(__name__)
 

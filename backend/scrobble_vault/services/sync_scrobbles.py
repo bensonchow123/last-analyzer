@@ -1,15 +1,15 @@
 import time
 import logging
 
-from db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
-from db.album import init_albums_table
-from db.artist import init_artists_table
-from db.track import init_tracks_table
-from db.scrobble import init_scrobbles_table, insert_scrobble
-from services.last_fm import fetch_last_fm_data
-from services.sync_new_albums import sync_new_albums
-from services.sync_new_artists import sync_new_artists
-from services.sync_new_tracks import sync_new_tracks
+from scrobble_vault.db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
+from scrobble_vault.db.album import init_albums_table
+from scrobble_vault.db.artist import init_artists_table
+from scrobble_vault.db.track import init_tracks_table
+from scrobble_vault.db.scrobble import init_scrobbles_table, insert_scrobble
+from scrobble_vault.services.last_fm import fetch_last_fm_data
+from scrobble_vault.services.sync_new_albums import sync_new_albums
+from scrobble_vault.services.sync_new_artists import sync_new_artists
+from scrobble_vault.services.sync_new_tracks import sync_new_tracks
 
 logger = logging.getLogger(__name__)
 

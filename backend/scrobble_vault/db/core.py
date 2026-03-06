@@ -1,7 +1,7 @@
 import asyncpg
 from pgvector.asyncpg import register_vector
 
-from env import env
+from scrobble_vault.env import env
 
 pool: asyncpg.Pool | None = None # the global Postgres connection pool
 

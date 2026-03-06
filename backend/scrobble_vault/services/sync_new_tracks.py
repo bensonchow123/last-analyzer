@@ -2,9 +2,9 @@ import logging
 
 import aiohttp
 
-from env import env
-from db.track import track_exists, insert_track
-from services.last_fm import fetch_track_info
+from scrobble_vault.env import env
+from scrobble_vault.db.track import track_exists, insert_track
+from scrobble_vault.services.last_fm import fetch_track_info
 
 logger = logging.getLogger(__name__)
 
