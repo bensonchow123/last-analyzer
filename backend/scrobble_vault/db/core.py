@@ -1,7 +1,16 @@
 import asyncpg
 from pgvector.asyncpg import register_vector
+from unidecode import unidecode
 
 from scrobble_vault.env import env
+
+
+def normalize(text: str) -> str:
+    """Normalize text for consistent DB key comparison.
+
+    Before this random unicode characters cause missing foreign keys in the album and track table.
+    """
+    return unidecode(text).strip().lower()
 
 pool: asyncpg.Pool | None = None # the global Postgres connection pool (admin)
 ro_pool: asyncpg.Pool | None = None # the global Postgres connection pool (read only)
