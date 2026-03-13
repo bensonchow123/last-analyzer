@@ -2,10 +2,12 @@ import asyncio
 import logging
 
 import aiocron
+import uvicorn
 
 from scrobble_vault.env import env
 from scrobble_vault.db.core import init_db, close_db
 from scrobble_vault.services.sync_scrobbles import sync_scrobble_vault
+from scrobble_vault.api.fast_api import api
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +27,9 @@ async def start_scrobble_vault():
     await asyncio.Event().wait()
 
 async def start_api():
-    pass
+    config = uvicorn.Config(app=api, host="0.0.0.0", port=8000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 async def main():
     # Initialize database connection pool
