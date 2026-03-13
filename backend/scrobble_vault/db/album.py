@@ -5,6 +5,7 @@ import asyncpg
 
 from scrobble_vault.db import core
 from scrobble_vault.db.core import normalize
+
 from scrobble_vault.ai.embeddings import build_album_text, generate_embedding_async
 
 logger = logging.getLogger(__name__)

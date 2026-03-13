@@ -12,6 +12,7 @@ def normalize(text: str) -> str:
     """
     return unidecode(text).strip().lower()
 
+
 pool: asyncpg.Pool | None = None # the global Postgres connection pool (admin)
 ro_pool: asyncpg.Pool | None = None # the global Postgres connection pool (read only)
 
