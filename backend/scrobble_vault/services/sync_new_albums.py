@@ -2,9 +2,9 @@ import logging
 
 import aiohttp
 
-from env import env
-from db.album import album_exists, insert_album
-from services.last_fm import fetch_album_info
+from scrobble_vault.env import env
+from scrobble_vault.db.album import album_exists, insert_album
+from scrobble_vault.services.last_fm import fetch_album_info
 
 logger = logging.getLogger(__name__)
 

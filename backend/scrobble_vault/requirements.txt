@@ -7,3 +7,4 @@ asyncpg
 sentence-transformers
 pgvector
 numpy
+sqlglot

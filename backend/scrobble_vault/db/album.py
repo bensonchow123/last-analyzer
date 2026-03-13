@@ -3,8 +3,8 @@ import logging
 
 import asyncpg
 
-from . import core
-from ai.embeddings import build_album_text, generate_embedding_async
+from scrobble_vault.db import core
+from scrobble_vault.ai.embeddings import build_album_text, generate_embedding_async
 
 logger = logging.getLogger(__name__)
 

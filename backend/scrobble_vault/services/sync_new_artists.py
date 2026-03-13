@@ -2,9 +2,9 @@ import logging
 
 import aiohttp
 
-from env import env
-from db.artist import artist_exists, insert_artist
-from services.last_fm import fetch_artist_info
+from scrobble_vault.env import env
+from scrobble_vault.db.artist import artist_exists, insert_artist
+from scrobble_vault.services.last_fm import fetch_artist_info
 
 logger = logging.getLogger(__name__)
 

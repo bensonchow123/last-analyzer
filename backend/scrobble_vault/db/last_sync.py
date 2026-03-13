@@ -3,7 +3,7 @@ import logging
 
 import asyncpg
 
-from . import core
+from scrobble_vault.db import core
 
 logger = logging.getLogger(__name__)
 
