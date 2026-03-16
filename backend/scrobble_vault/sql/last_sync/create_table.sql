@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS last_sync (
+    key VARCHAR(50) PRIMARY KEY,
+    value BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);

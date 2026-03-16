@@ -5,10 +5,17 @@ import asyncpg
 
 from scrobble_vault.db import core
 from scrobble_vault.db.core import normalize
-
 from scrobble_vault.ai.embeddings import build_album_text, generate_embedding_async
+from scrobble_vault.db.sql_loader import load_sql
 
 logger = logging.getLogger(__name__)
+
+
+CREATE_TABLE_SQL = load_sql("album", "create_table")
+CREATE_UNIQUE_IDENTITY_INDEX_SQL = load_sql("album", "create_unique_identity_index")
+ALBUM_EXISTS_SQL = load_sql("album", "album_exists")
+GET_ARTIST_ID_BY_NAME_NORM_SQL = load_sql("album", "get_artist_id_by_name_norm")
+INSERT_ALBUM_SQL = load_sql("album", "insert_album")
 
 
 async def init_albums_table():
@@ -20,37 +27,8 @@ async def init_albums_table():
     """
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS albums (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    album_name_norm TEXT NOT NULL,
-                    mbid TEXT,
-                    url TEXT,
-                    release_date TEXT,
-                    artist_id INTEGER REFERENCES artists(id),
-                    artist_name TEXT NOT NULL,
-                    artist_name_norm TEXT NOT NULL,
-                    image_small TEXT,
-                    image_medium TEXT,
-                    image_large TEXT,
-                    image_extralarge TEXT,
-                    listeners INTEGER,
-                    playcount INTEGER,
-                    toptags JSONB,
-                    tracks JSONB,
-                    wiki_published TEXT,
-                    wiki_summary TEXT,
-                    wiki_content TEXT,
-                    user_playcount INTEGER,
-                    embedding VECTOR(384)
-                )
-            ''')
-            # Create unique index on normalized columns
-            await conn.execute('''
-                CREATE UNIQUE INDEX IF NOT EXISTS albums_unique_identity
-                ON albums (artist_name_norm, album_name_norm)
-            ''')
+            await conn.execute(CREATE_TABLE_SQL)
+            await conn.execute(CREATE_UNIQUE_IDENTITY_INDEX_SQL)
     except (OSError, asyncpg.PostgresError) as e:
         logger.exception("Failed to initialize the albums table")
         raise
@@ -61,7 +39,7 @@ async def album_exists(artist_name: str, album_name: str) -> bool:
     try:
         async with core.pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT 1 FROM albums WHERE artist_name_norm = $1 AND album_name_norm = $2",
+                ALBUM_EXISTS_SQL,
                 normalize(artist_name), normalize(album_name)
             )
             return row is not None
@@ -119,33 +97,13 @@ async def insert_album(album_info: dict):
         async with core.pool.acquire() as conn:
             # Resolve the artist foreign key
             artist_row = await conn.fetchrow(
-                "SELECT id FROM artists WHERE artist_name_norm = $1",
+                GET_ARTIST_ID_BY_NAME_NORM_SQL,
                 normalize(artist_name),
             )
             artist_id = artist_row['id'] if artist_row else None
 
-            await conn.execute('''
-                INSERT INTO albums (
-                    name, album_name_norm, mbid, url, release_date,
-                    artist_id, artist_name, artist_name_norm,
-                    image_small, image_medium, image_large, image_extralarge,
-                    listeners, playcount,
-                    toptags, tracks,
-                    wiki_published, wiki_summary, wiki_content,
-                    user_playcount,
-                    embedding
-                ) VALUES (
-                    $1, $2, $3, $4, $5,
-                    $6, $7, $8,
-                    $9, $10, $11, $12,
-                    $13, $14,
-                    $15, $16,
-                    $17, $18, $19,
-                    $20,
-                    $21
-                )
-                ON CONFLICT (artist_name_norm, album_name_norm) DO NOTHING
-            ''',
+            await conn.execute(
+                INSERT_ALBUM_SQL,
                 album_info.get('name'),
                 normalize(album_info.get('name', '')),
                 album_info.get('mbid') or None,

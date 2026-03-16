@@ -6,8 +6,17 @@ import asyncpg
 from scrobble_vault.db import core
 from scrobble_vault.db.core import normalize
 from scrobble_vault.ai.embeddings import build_track_text, generate_embedding_async
+from scrobble_vault.db.sql_loader import load_sql
 
 logger = logging.getLogger(__name__)
+
+
+CREATE_TABLE_SQL = load_sql("track", "create_table")
+CREATE_UNIQUE_IDENTITY_INDEX_SQL = load_sql("track", "create_unique_identity_index")
+TRACK_EXISTS_SQL = load_sql("track", "track_exists")
+GET_ARTIST_ID_BY_NAME_NORM_SQL = load_sql("track", "get_artist_id_by_name_norm")
+GET_ALBUM_ID_BY_NAMES_NORM_SQL = load_sql("track", "get_album_id_by_names_norm")
+INSERT_TRACK_SQL = load_sql("track", "insert_track")
 
 
 async def init_tracks_table():
@@ -20,45 +29,8 @@ async def init_tracks_table():
     """
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS tracks (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    track_name_norm TEXT NOT NULL,
-                    mbid TEXT,
-                    url TEXT,
-                    duration INTEGER,
-                    streamable TEXT,
-                    streamable_fulltrack TEXT,
-                    artist_id INTEGER REFERENCES artists(id),
-                    artist_name TEXT NOT NULL,
-                    artist_name_norm TEXT NOT NULL,
-                    artist_mbid TEXT,
-                    artist_url TEXT,
-                    album_id INTEGER REFERENCES albums(id),
-                    album_title TEXT,
-                    album_artist TEXT,
-                    album_mbid TEXT,
-                    album_url TEXT,
-                    album_position TEXT,
-                    album_image_small TEXT,
-                    album_image_medium TEXT,
-                    album_image_large TEXT,
-                    album_image_extralarge TEXT,
-                    toptags JSONB,
-                    wiki_published TEXT,
-                    wiki_summary TEXT,
-                    wiki_content TEXT,
-                    user_loved BOOLEAN,
-                    user_playcount INTEGER,
-                    embedding VECTOR(384)
-                )
-            ''')
-            # Create unique index on normalized columns
-            await conn.execute('''
-                CREATE UNIQUE INDEX IF NOT EXISTS tracks_unique_identity
-                ON tracks (artist_name_norm, track_name_norm)
-            ''')
+            await conn.execute(CREATE_TABLE_SQL)
+            await conn.execute(CREATE_UNIQUE_IDENTITY_INDEX_SQL)
     except (OSError, asyncpg.PostgresError) as e:
         logger.exception("Failed to initialize the tracks table")
         raise
@@ -69,7 +41,7 @@ async def track_exists(artist_name: str, track_name: str) -> bool:
     try:
         async with core.pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT 1 FROM tracks WHERE artist_name_norm = $1 AND track_name_norm = $2",
+                TRACK_EXISTS_SQL,
                 normalize(artist_name), normalize(track_name)
             )
             return row is not None
@@ -109,7 +81,7 @@ async def insert_track(track_info: dict):
         async with core.pool.acquire() as conn:
             # Resolve the artist foreign key
             artist_row = await conn.fetchrow(
-                "SELECT id FROM artists WHERE artist_name_norm = $1",
+                GET_ARTIST_ID_BY_NAME_NORM_SQL,
                 normalize(artist.get('name', '')),
             )
             artist_id = artist_row['id'] if artist_row else None
@@ -120,7 +92,7 @@ async def insert_track(track_info: dict):
             album_artist_name = album.get('artist') or artist.get('name', '')
             if album_title:
                 album_row = await conn.fetchrow(
-                    "SELECT id FROM albums WHERE artist_name_norm = $1 AND album_name_norm = $2",
+                    GET_ALBUM_ID_BY_NAMES_NORM_SQL,
                     normalize(album_artist_name),
                     normalize(album_title),
                 )
@@ -136,30 +108,8 @@ async def insert_track(track_info: dict):
                 'wiki_summary': wiki.get('summary')
             }))
 
-            await conn.execute('''
-                INSERT INTO tracks (
-                    name, track_name_norm, mbid, url, duration,
-                    streamable, streamable_fulltrack,
-                    artist_id, artist_name, artist_name_norm, artist_mbid, artist_url,
-                    album_id, album_title, album_artist, album_mbid, album_url, album_position,
-                    album_image_small, album_image_medium, album_image_large, album_image_extralarge,
-                    toptags,
-                    wiki_published, wiki_summary, wiki_content,
-                    user_loved, user_playcount,
-                    embedding
-                ) VALUES (
-                    $1, $2, $3, $4, $5,
-                    $6, $7,
-                    $8, $9, $10, $11, $12,
-                    $13, $14, $15, $16, $17, $18,
-                    $19, $20, $21, $22,
-                    $23,
-                    $24, $25, $26,
-                    $27, $28,
-                    $29
-                )
-                ON CONFLICT (artist_name_norm, track_name_norm) DO NOTHING
-            ''',
+            await conn.execute(
+                INSERT_TRACK_SQL,
                 track_info.get('name'),
                 normalize(track_info.get('name', '')),
                 track_info.get('mbid') or None,

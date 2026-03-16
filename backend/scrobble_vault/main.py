@@ -32,9 +32,9 @@ async def start_api():
     await server.serve()
 
 async def main():
-    # Initialize database connection pool
+    # Initialize database connection pools
     await init_db()
-    logging.info("Database connection pool initialized")
+    logging.info("Database connection pools initialized")
     
     try:
         async with asyncio.TaskGroup() as tg:

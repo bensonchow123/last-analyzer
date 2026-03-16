@@ -4,8 +4,15 @@ import logging
 import asyncpg
 
 from scrobble_vault.db import core
+from scrobble_vault.db.sql_loader import load_sql
 
 logger = logging.getLogger(__name__)
+
+
+CREATE_TABLE_SQL = load_sql("last_sync", "create_table")
+INSERT_INITIAL_LAST_SYNC_SQL = load_sql("last_sync", "insert_initial_last_sync")
+GET_LAST_SYNCED_SCROBBLE_SQL = load_sql("last_sync", "get_last_synced_scrobble")
+UPDATE_LAST_SYNCED_SCROBBLE_SQL = load_sql("last_sync", "update_last_synced_scrobble")
 
 async def init_sync_table():
     """
@@ -17,19 +24,9 @@ async def init_sync_table():
     """
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS last_sync (
-                    key VARCHAR(50) PRIMARY KEY,
-                    value BIGINT NOT NULL,
-                    updated_at BIGINT NOT NULL
-                )
-            ''')
+            await conn.execute(CREATE_TABLE_SQL)
             # Insert initial value if not exists
-            await conn.execute('''
-                INSERT INTO last_sync (key, value, updated_at)
-                VALUES ('last_sync_time', 0, 0)
-                ON CONFLICT (key) DO NOTHING
-            ''')
+            await conn.execute(INSERT_INITIAL_LAST_SYNC_SQL)
 
     except (OSError, asyncpg.PostgresError) as e:
         logger.exception("Failed to initialize the syncing table")
@@ -46,9 +43,7 @@ async def get_last_synced_scrobble() -> int | None:
     """
     try:
         async with core.pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT value FROM last_sync WHERE key = 'last_sync_time'"
-            )
+            row = await conn.fetchrow(GET_LAST_SYNCED_SCROBBLE_SQL)
             return row['value'] if row else None
     
     except (OSError, asyncpg.PostgresError) as e:
@@ -59,11 +54,11 @@ async def update_last_synced_scrobble(timestamp: int):
     """Update the last sync time row in the database."""
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                UPDATE last_sync
-                SET value = $1, updated_at = $2
-                WHERE key = 'last_sync_time'
-            ''', timestamp, int(time.time()))
+            await conn.execute(
+                UPDATE_LAST_SYNCED_SCROBBLE_SQL,
+                timestamp,
+                int(time.time()),
+            )
         
     except (OSError, asyncpg.PostgresError) as e:
         logger.exception("Could not update last sync time")

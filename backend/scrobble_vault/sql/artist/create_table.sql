@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS artists (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    artist_name_norm TEXT NOT NULL,
+    mbid TEXT,
+    url TEXT,
+    image_small TEXT,
+    image_medium TEXT,
+    image_large TEXT,
+    image_extralarge TEXT,
+    streamable TEXT,
+    listeners INTEGER,
+    playcount INTEGER,
+    similar_artists JSONB,
+    tags JSONB,
+    bio_published TEXT,
+    bio_summary TEXT,
+    bio_content TEXT,
+    user_playcount INTEGER,
+    embedding VECTOR(384)
+);

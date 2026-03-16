@@ -6,8 +6,15 @@ import asyncpg
 from scrobble_vault.db import core
 from scrobble_vault.db.core import normalize
 from scrobble_vault.ai.embeddings import build_artist_text, generate_embedding_async
+from scrobble_vault.db.sql_loader import load_sql
 
 logger = logging.getLogger(__name__)
+
+
+CREATE_TABLE_SQL = load_sql("artist", "create_table")
+CREATE_UNIQUE_IDENTITY_INDEX_SQL = load_sql("artist", "create_unique_identity_index")
+ARTIST_EXISTS_SQL = load_sql("artist", "artist_exists")
+INSERT_ARTIST_SQL = load_sql("artist", "insert_artist")
 
 
 async def init_artists_table():
@@ -19,33 +26,8 @@ async def init_artists_table():
     """
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS artists (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    artist_name_norm TEXT NOT NULL,
-                    mbid TEXT,
-                    url TEXT,
-                    image_small TEXT,
-                    image_medium TEXT,
-                    image_large TEXT,
-                    image_extralarge TEXT,
-                    streamable TEXT,
-                    listeners INTEGER,
-                    playcount INTEGER,
-                    similar_artists JSONB,
-                    tags JSONB,
-                    bio_published TEXT,
-                    bio_summary TEXT,
-                    bio_content TEXT,
-                    user_playcount INTEGER,
-                    embedding VECTOR(384)
-                )
-            ''')
-            await conn.execute('''
-                CREATE UNIQUE INDEX IF NOT EXISTS artists_unique_identity
-                ON artists (artist_name_norm)
-            ''')
+            await conn.execute(CREATE_TABLE_SQL)
+            await conn.execute(CREATE_UNIQUE_IDENTITY_INDEX_SQL)
     except (OSError, asyncpg.PostgresError):
         logger.exception("Failed to initialize the artists table")
         raise
@@ -56,7 +38,7 @@ async def artist_exists(artist_name: str) -> bool:
     try:
         async with core.pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT 1 FROM artists WHERE artist_name_norm = $1",
+                ARTIST_EXISTS_SQL,
                 normalize(artist_name),
             )
             return row is not None
@@ -108,26 +90,8 @@ async def insert_artist(artist_info: dict):
         }))
 
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                INSERT INTO artists (
-                    name, artist_name_norm, mbid, url,
-                    image_small, image_medium, image_large, image_extralarge,
-                    streamable, listeners, playcount,
-                    similar_artists, tags,
-                    bio_published, bio_summary, bio_content,
-                    user_playcount,
-                    embedding
-                ) VALUES (
-                    $1, $2, $3, $4,
-                    $5, $6, $7, $8,
-                    $9, $10, $11,
-                    $12, $13,
-                    $14, $15, $16,
-                    $17,
-                    $18
-                )
-                ON CONFLICT (artist_name_norm) DO NOTHING
-            ''',
+            await conn.execute(
+                INSERT_ARTIST_SQL,
                 artist_name,
                 normalize(artist_name),
                 artist_info.get('mbid') or None,

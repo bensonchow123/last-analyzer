@@ -3,6 +3,10 @@ from pgvector.asyncpg import register_vector
 from unidecode import unidecode
 
 from scrobble_vault.env import env
+from scrobble_vault.db.sql_loader import load_sql
+
+
+CREATE_VECTOR_EXTENSION_SQL = load_sql("core", "create_vector_extension")
 
 
 def normalize(text: str) -> str:
@@ -18,7 +22,7 @@ ro_pool: asyncpg.Pool | None = None # the global Postgres connection pool (read 
 
 async def _init_connection(conn: asyncpg.Connection):
     """To make sure the pgvector extension is enbaled, before the connection."""
-    await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    await conn.execute(CREATE_VECTOR_EXTENSION_SQL)
     await register_vector(conn)
 
 async def init_db():

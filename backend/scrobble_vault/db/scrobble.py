@@ -3,8 +3,15 @@ import logging
 import asyncpg
 
 from scrobble_vault.db import core
+from scrobble_vault.db.sql_loader import load_sql
 
 logger = logging.getLogger(__name__)
+
+
+CREATE_TABLE_SQL = load_sql("scrobble", "create_table")
+CREATE_UNIQUE_LISTEN_INDEX_SQL = load_sql("scrobble", "create_unique_listen_index")
+GET_TRACK_ID_BY_NAMES_NORM_SQL = load_sql("scrobble", "get_track_id_by_names_norm")
+INSERT_SCROBBLE_SQL = load_sql("scrobble", "insert_scrobble")
 
 
 def normalize(text: str) -> str:
@@ -26,20 +33,8 @@ async def init_scrobbles_table():
     """
     try:
         async with core.pool.acquire() as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS scrobbles (
-                    id SERIAL PRIMARY KEY,
-                    track_id INTEGER REFERENCES tracks(id),
-                    listened_at BIGINT NOT NULL,
-                    artist_name TEXT NOT NULL,
-                    track_name TEXT NOT NULL,
-                    album_name TEXT
-                )
-            ''')
-            await conn.execute('''
-                CREATE UNIQUE INDEX IF NOT EXISTS scrobbles_unique_listen
-                ON scrobbles (track_id, listened_at)
-            ''')
+            await conn.execute(CREATE_TABLE_SQL)
+            await conn.execute(CREATE_UNIQUE_LISTEN_INDEX_SQL)
     except (OSError, asyncpg.PostgresError):
         logger.exception("Failed to initialize the scrobbles table")
         raise
@@ -68,19 +63,14 @@ async def insert_scrobble(scrobble: dict):
         async with core.pool.acquire() as conn:
             # Resolve the track foreign key
             track_row = await conn.fetchrow(
-                "SELECT id FROM tracks WHERE artist_name_norm = $1 AND track_name_norm = $2",
+                GET_TRACK_ID_BY_NAMES_NORM_SQL,
                 normalize(artist_name),
                 normalize(track_name),
             )
             track_id = track_row['id'] if track_row else None
 
-            await conn.execute('''
-                INSERT INTO scrobbles (
-                    track_id, listened_at,
-                    artist_name, track_name, album_name
-                ) VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (track_id, listened_at) DO NOTHING
-            ''',
+            await conn.execute(
+                INSERT_SCROBBLE_SQL,
                 track_id,
                 listened_at,
                 artist_name,
