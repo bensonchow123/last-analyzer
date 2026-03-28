@@ -1,0 +1,11 @@
+fastapi[standard]==0.135.1
+aiohttp==3.13.3
+aiocron==2.1
+aiosqlite==0.22.1
+python-dotenv==1.2.2
+asyncpg==0.31.0
+sentence-transformers==5.3.0
+pgvector==0.4.2
+numpy==2.4.3
+sqlglot==29.0.1
+Unidecode==1.4.0
