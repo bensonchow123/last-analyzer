@@ -1,5 +1,5 @@
 # Last-analyser
-A work in progress analyser that analysis your music listerning habits, also providing a RESTful API to interact with your local collection of your music listerning habbit.
+A work in progress analyser that analysis your music listerning habits, also providing a RESTful API to interact with your local collection of listerning history.
 
 ## Goal
 The app is envisioned to be ran in two seperate machines, to be eco-friendly.
