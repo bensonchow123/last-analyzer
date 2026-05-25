@@ -27,7 +27,7 @@ async def start_scrobble_vault():
     await asyncio.Event().wait()
 
 async def start_api():
-    config = uvicorn.Config(app=api, host="0.0.0.0", port=8000, log_level="info")
+    config = uvicorn.Config(app=api, host="0.0.0.0", port=env.SCROBBLE_VAULT_PORT, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
 
