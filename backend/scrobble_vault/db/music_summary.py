@@ -32,7 +32,7 @@ def _window_start_ts(days: int | None) -> int | None:
 def _fmt_ts(unix_ts: int | None) -> str:
 	if not unix_ts:
 		return "n/a"
-	return datetime.fromtimestamp(unix_ts, UTC).strftime("%Y-%m-%d")
+	return str(int(unix_ts))
 
 
 def _ms_to_seconds(duration_ms: int | None) -> int:
@@ -57,65 +57,6 @@ def _with_duration_fields(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 		item["duration_hhmmss"] = _seconds_to_hhmmss(seconds)
 		updated_rows.append(item)
 	return updated_rows
-
-
-def _build_template(period_label: str, stats: dict[str, Any]) -> str:
-	active_days = stats["active_days"] or 0
-	total_scrobbles = stats["total_scrobbles"] or 0
-	avg_daily = (total_scrobbles / active_days) if active_days else 0.0
-	total_listening_seconds = stats["listening_time"]["total_seconds"]
-
-	top_artist = stats.get("top_artists", [None])[0]
-	top_artist_line = (
-		f"{top_artist['artist_name']} ({top_artist['plays']} plays)"
-		if top_artist
-		else "n/a"
-	)
-
-	top_track = stats.get("top_tracks", [None])[0]
-	top_track_line = (
-		f"{top_track['artist_name']} — {top_track['track_name']} ({top_track['plays']} plays)"
-		if top_track
-		else "n/a"
-	)
-
-	top_album = stats.get("top_albums", [None])[0]
-	top_album_line = (
-		f"{top_album['artist_name']} — {top_album['album_name']} ({top_album['plays']} plays)"
-		if top_album
-		else "n/a"
-	)
-
-	most_active_day = stats.get("most_active_day")
-	most_active_day_line = (
-		f"{most_active_day['day']} (avg {most_active_day['average_duration_hhmmss']} per scrobble, {most_active_day['scrobbles']} scrobbles)"
-		if most_active_day
-		else "n/a"
-	)
-
-	peak_hour = stats["listening_clock"].get("peak_hour")
-	peak_hour_line = (
-		f"{peak_hour['hour']:02d}:00 ({peak_hour['scrobbles']} scrobbles)"
-		if peak_hour
-		else "n/a"
-	)
-
-	return (
-		f"Music Summary ({period_label})\n"
-		f"- Range: {_fmt_ts(stats['first_listened_at'])} to {_fmt_ts(stats['last_listened_at'])}\n"
-		f"- Total scrobbles: {total_scrobbles}\n"
-		f"- Unique artists: {stats['unique_artists_count']}\n"
-		f"- Unique tracks: {stats['unique_tracks_count']}\n"
-		f"- Unique albums: {stats['unique_albums_count']}\n"
-		f"- Active days: {active_days}\n"
-		f"- Average scrobbles/day: {avg_daily:.2f}\n"
-		f"- Listening time: {stats['listening_time']['total_hhmmss']} ({total_listening_seconds} sec)\n"
-		f"- Listening clock peak: {peak_hour_line}\n"
-		f"- Most active day: {most_active_day_line}\n"
-		f"- Top artist: {top_artist_line}\n"
-		f"- Top track: {top_track_line}\n"
-		f"- Top album: {top_album_line}"
-	)
 
 
 async def _summary_for_period(period_key: str, days: int | None) -> dict[str, Any]:
@@ -163,7 +104,6 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 					"period": period_key,
 					"label": period_label,
 					"stats": empty_stats,
-					"template": f"Music Summary ({period_label})\n- No scrobbles found in this period.",
 				}
 
 			artist_rows = await conn.fetch(ARTIST_PLAYS_SQL, lower_bound)
@@ -202,9 +142,16 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 					}
 				)
 
-			peak_hour = max(clock_hours, key=lambda item: item["scrobbles"]) if clock_hours else None
+			# Fill in missing hours with zeroes
+			all_hours = {h: {"hour": h, "scrobbles": 0, "average_duration_seconds": 0, "average_duration_hhmmss": "00:00:00"} for h in range(24)}
+			for hour_stat in clock_hours:
+				all_hours[hour_stat["hour"]] = hour_stat
+			clock_hours_full = [all_hours[h] for h in range(24)]
+
+			peak_hour = max(clock_hours_full, key=lambda item: item["scrobbles"]) if clock_hours_full else None
 			stats["listening_clock"] = {
 				"peak_hour": peak_hour,
+				"hours": clock_hours_full
 			}
 
 			if active_day:
@@ -252,8 +199,7 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 			return {
 				"period": period_key,
 				"label": period_label,
-				"stats": stats,
-				"template": _build_template(period_label, stats),
+				"stats": stats
 			}
 	except (OSError, asyncpg.PostgresError):
 		logger.exception("Failed generating music summary for period=%s", period_key)
