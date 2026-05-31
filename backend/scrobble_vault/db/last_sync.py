@@ -32,11 +32,12 @@ async def init_sync_table():
         logger.exception("Failed to initialize the syncing table")
         raise
 
-async def get_last_synced_scrobble() -> int | None:
+async def get_last_synced_scrobble() -> dict | None:
     """
     Get the last successful scrobble sync time from the database.
     Returns:
-        - int: The timestamp of the last synced scrobble
+        - dict{"value":int, "updated_at": int}, both are unix timestamps:
+            The timestamp of the last synced scrobble as `value` and the last update time as `updated_at`
         - None: If no sync record exists (first time sync)
     Raises:
         - Exception: If database connection or query fails
@@ -44,8 +45,10 @@ async def get_last_synced_scrobble() -> int | None:
     try:
         async with core.pool.acquire() as conn:
             row = await conn.fetchrow(GET_LAST_SYNCED_SCROBBLE_SQL)
-            return row['value'] if row else None
-    
+            if row:
+                return {"value": row["value"], "updated_at": row["updated_at"]}
+            else:
+                return None
     except (OSError, asyncpg.PostgresError) as e:
         logger.exception("Could not read last sync time")
         raise

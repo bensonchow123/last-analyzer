@@ -26,8 +26,9 @@ async def sync_scrobble_vault():
     
     logger.info("Starting scrobble sync...")
     
-    last_synced_scrobble_timestamp = await get_last_synced_scrobble()
-    
+    last_sync_info = await get_last_synced_scrobble()
+    last_synced_scrobble_timestamp = last_sync_info["value"] if last_sync_info else None
+
     now = int(time.time())
 
     # If no sync record sync from beginning
@@ -35,7 +36,7 @@ async def sync_scrobble_vault():
         starting_time = 0  # Unix epoch
     else:
         starting_time = last_synced_scrobble_timestamp + 1  # Start from next second
-    
+
     scrobble_data = await fetch_last_fm_data(starting_time, now)
     scrobbles = scrobble_data.get('scrobbles', [])
     

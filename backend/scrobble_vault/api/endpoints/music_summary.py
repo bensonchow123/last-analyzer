@@ -10,7 +10,8 @@ from scrobble_vault.db.music_summary import get_music_summaries
 async def music_summary():
     try:
         summaries = await get_music_summaries()
-        last_synced_at = await last_sync.get_last_synced_scrobble()
+        last_sync_info = await last_sync.get_last_synced_scrobble()
+        last_synced_at = last_sync_info["updated_at"] if last_sync_info else None
         return {
             "generated_at": int(datetime.now(UTC).timestamp()),
             "last_synced_at": last_synced_at,
