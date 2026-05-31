@@ -32,6 +32,18 @@ async def init_sync_table():
         logger.exception("Failed to initialize the syncing table")
         raise
 
+async def touch_last_sync_row():
+    """Update only the updated_at field in the last_sync table, leaving value unchanged."""
+    try:
+        async with core.pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE last_sync SET updated_at = $1 WHERE key = 'last_sync_time';",
+                int(time.time()),
+            )
+    except (OSError, asyncpg.PostgresError) as e:
+        logger.exception("Could not touch last sync row")
+        raise
+
 async def get_last_synced_scrobble() -> dict | None:
     """
     Get the last successful scrobble sync time from the database.

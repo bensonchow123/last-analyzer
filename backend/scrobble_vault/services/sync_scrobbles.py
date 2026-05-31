@@ -1,7 +1,12 @@
 import time
 import logging
 
-from scrobble_vault.db.last_sync import get_last_synced_scrobble, update_last_synced_scrobble, init_sync_table
+from scrobble_vault.db.last_sync import (
+    get_last_synced_scrobble, 
+    update_last_synced_scrobble, 
+    init_sync_table,
+    touch_last_sync_row
+)
 from scrobble_vault.db.album import init_albums_table
 from scrobble_vault.db.artist import init_artists_table
 from scrobble_vault.db.track import init_tracks_table
@@ -10,6 +15,7 @@ from scrobble_vault.services.last_fm import fetch_last_fm_data
 from scrobble_vault.services.sync_new_albums import sync_new_albums
 from scrobble_vault.services.sync_new_artists import sync_new_artists
 from scrobble_vault.services.sync_new_tracks import sync_new_tracks
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,5 +65,7 @@ async def sync_scrobble_vault():
         await update_last_synced_scrobble(latest_scrobble_time)
         logger.info(f"Sync completed: {len(scrobbles)} scrobbles synced")
     else:
+        # No new scrobbles, only update `updated_at`
+        await touch_last_sync_row()
         logger.info("Sync completed: No new scrobbles")
             
