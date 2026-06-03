@@ -190,9 +190,6 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 				duration_seconds = _ms_to_seconds(recent_item.get("duration_ms"))
 				recent_item["duration_seconds"] = duration_seconds
 				recent_item["duration_hhmmss"] = _seconds_to_hhmmss(duration_seconds)
-				recent_item["listened_at_iso"] = datetime.fromtimestamp(
-					recent_item["listened_at"], UTC
-				).isoformat()
 				recent_tracks.append(recent_item)
 			stats["recent_tracks"] = recent_tracks
 
@@ -214,4 +211,3 @@ async def get_music_summaries() -> list[dict[str, Any]]:
 		("all_time", None),
 	]
 	return [await _summary_for_period(period_key, days) for period_key, days in windows]
-

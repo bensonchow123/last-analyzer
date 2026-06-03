@@ -129,8 +129,7 @@ This document describes the response for the `GET /music-summary` endpoint.
       "artist_image_extralarge": "string | null",
       "artist_image_large": "string | null",
       "artist_image_medium": "string | null",
-      "artist_image_small": "string | null",
-      "listened_at_iso": "ISO-8601" // UTC ISO-8601 timestamp
+      "artist_image_small": "string | null"
     },
     // ... (most recent 15 tracks or [])
   ]
