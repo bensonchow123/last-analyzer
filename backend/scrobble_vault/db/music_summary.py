@@ -61,7 +61,7 @@ def _with_duration_fields(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 async def _summary_for_period(period_key: str, days: int | None) -> dict[str, Any]:
 	lower_bound = _window_start_ts(days)
-	period_label = "all time" if days is None else f"last {days} days"
+	period_label = "All Time" if days is None else f"Last {days} Days"
 
 	try:
 		async with core.ro_pool.acquire() as conn:

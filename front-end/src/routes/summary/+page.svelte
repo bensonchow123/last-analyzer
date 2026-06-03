@@ -7,7 +7,7 @@
 
 	// derived detects if `data.summary.generated_at` and recomputes
 	const lastSyncedAt = $derived(
-		data.summary.last_synced_at ? timeAgo(data.summary.last_synced_at) : ', you never synced'
+		data.summary.last_synced_at ? timeAgo(data.summary.last_synced_at) : null
 	);
 </script>
 
@@ -16,14 +16,27 @@
 	<!-- header, shows last syned -->
 	<div>
 		<h1 class="text-2xl text-white">Your Music Summary</h1>
-		<p class="text-sm text-white/50">Last synced {lastSyncedAt}</p>
-
+		{#if lastSyncedAt}
+			<p class="text-sm text-white/50">Last synced {lastSyncedAt}</p>
+		{:else}
+  			<p class="text-sm text-white/50">Not synced to Last.fm</p>
+		{/if}
 	</div>
 
 	<!-- time period tab buttons, on click update the `selectedPeriod` variable -->
-	<div>
+	<div class="flex gap-2 mt-4">
 		{#each data.summary.periods as period, i}
-			<button onclick={() => selectedPeriod = i}>
+			<button
+				class="
+					px-4 py-2 rounded-lg text-sm
+					{	
+						selectedPeriod === i
+						? 'bg-violet-600 text-white' // activated if button active
+						: 'text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/20' // activate if not active
+					}
+				"
+				onclick={() => selectedPeriod = i}
+			>
 				{period.label}
 			</button>
 		{/each}
