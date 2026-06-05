@@ -2,7 +2,7 @@
 
 This document describes the response for the `GET /music-summary` endpoint.
 
-## JSON structure
+## Top level JSON structure
 ```jsonc
 {
   "generated_at": 0, // unix seconds (UTC), request time
@@ -14,14 +14,15 @@ This document describes the response for the `GET /music-summary` endpoint.
       "stats": {
         "total_scrobbles": 0,
         "active_days": 0,
-        "first_listened_at": 0, // unix seconds (UTC)
-        "last_listened_at": 0, // unix seconds (UTC)
+        "first_listened_at": 0, // unix seconds (UTC) | null if no scrobbles
+        "last_listened_at": 0, // unix seconds (UTC) | null if no scrobbles
         "unique_artists_count": 0,
         "unique_tracks_count": 0,
         "unique_albums_count": 0,
         "listening_time": {}, // see below
         "listening_clock": {}, // see below
-        "most_active_day": null, // most_active_day | null, see below
+        "listening_weekday": {}, // see below
+        "most_active_day": {}, // most_active_day | null, see below
         "new_in_timeframe": {}, // new_in_timeframe (not present in `all_time` period), see below
         "top_artists": [], // see below
         "top_albums": [], // see below
@@ -37,34 +38,96 @@ This document describes the response for the `GET /music-summary` endpoint.
 
 ```jsonc
 {
-  "listening_time": {
-    "total_seconds": 0,
-    "total_hhmmss": "HH:MM:SS",
-    "missing_duration_count": 0
-  },
+    "listening_time": {
+      "total_seconds": 0,
+      "total_string": "12h 3m 4s", // the sections disappear if not needed, if null it is "0s"
+      "missing_duration_count": 0
+    },
   "listening_clock": {
     "peak_hour": { // if no peak_hour null
       "hour": 0,
       "scrobbles": 0,
-      "average_duration_seconds": 0,
-      "average_duration_hhmmss": "HH:MM:SS"
+      "average_listening_seconds": 0,
+      "average_listening_string": "12h 3m 4s"
     },
     "hours": [
       {
         "hour": 0,
         "scrobbles": 0,
-        "average_duration_seconds": 0,
-        "average_duration_hhmmss": "HH:MM:SS"
+        "average_listening_seconds": 0,
+        "average_listening_string": "12h 3m 4s"
       },
       // ... 24 objects, one for each hour (0-23), 0 is 12am
+    ]
+  },
+  "listening_weekday": {
+    "peak_day": { // if no peak_day null
+      "weekday_index": 1, // 1 = Monday, 7 = Sunday
+      "weekday": "Monday",
+      "scrobbles": 0,
+      "average_listening_seconds": 0,
+      "average_listening_string": "12h 3m 4s"
+    },
+    "days": [
+      {
+        "weekday_index": 1,
+        "weekday": "Monday",
+        "scrobbles": 0,
+        "average_listening_seconds": 0,
+        "average_listening_string": "12h 3m 4s"
+      },
+      // ... 7 objects, one for each weekday (1-7), Monday to Sunday
     ]
   },
   "most_active_day": {
     "day": "YYYY-MM-DD", // date string (UTC)
     "scrobbles": 0,
-    "average_duration_seconds": 0,
-    "average_duration_hhmmss": "HH:MM:SS"
+    "total_listening_seconds": 0,
+    "total_listening_string": "12h 3m 4s"
   },
+  "top_artists": [
+    {
+      "artist_name": "string",
+      "plays": 0,
+      "first_listened_at": 0,
+      "artist_image_extralarge": "string | null",
+      "artist_image_large": "string | null",
+      "artist_image_medium": "string | null",
+      "artist_image_small": "string | null"
+    }
+  ],
+  "top_albums": [
+    {
+      "artist_name": "string",
+      "album_name": "string",
+      "plays": 0,
+      "first_listened_at": 0,
+      "album_image_extralarge": "string | null",
+      "album_image_large": "string | null",
+      "album_image_medium": "string | null",
+      "album_image_small": "string | null"
+    }
+  ],
+  "top_tracks": [
+    {
+      "artist_name": "string",
+      "track_name": "string",
+      "plays": 0,
+      "first_listened_at": 0,
+      "duration_ms": 0,
+      "duration_seconds": 0,
+      "duration_string": "12h 3m 4s",
+      "album_name": "string | null",
+      "artist_image_extralarge": "string | null",
+      "artist_image_large": "string | null",
+      "artist_image_medium": "string | null",
+      "artist_image_small": "string | null",
+      "album_image_extralarge": "string | null",
+      "album_image_large": "string | null",
+      "album_image_medium": "string | null",
+      "album_image_small": "string | null"
+    }
+  ],
   "new_in_timeframe": {
     "artists_count": 0,
     "artists": [
@@ -100,7 +163,7 @@ This document describes the response for the `GET /music-summary` endpoint.
         "first_listened_at": 0,
         "duration_ms": 0,
         "duration_seconds": 0,
-        "duration_hhmmss": "HH:MM:SS",
+        "duration_string": "12h 3m 4s",
         "album_name": "string | null",
         "artist_image_extralarge": "string | null",
         "artist_image_large": "string | null",
@@ -121,7 +184,7 @@ This document describes the response for the `GET /music-summary` endpoint.
       "album_name": "string | null",
       "duration_ms": 0,
       "duration_seconds": 0,
-      "duration_hhmmss": "HH:MM:SS",
+      "duration_string": "12h 3m 4s",
       "album_image_extralarge": "string | null",
       "album_image_large": "string | null",
       "album_image_medium": "string | null",
@@ -136,6 +199,6 @@ This document describes the response for the `GET /music-summary` endpoint.
 }
 ```
 
-## Conditions and edge cases
+## Top level edge cases
 - `periods` always returns 4 items in this order: `7d`, `30d`, `365d`, `all_time`.
 - `new_in_timeframe` exists only for `period` values `7d`, `30d`, and `365d`.
