@@ -13,3 +13,10 @@ export function timeAgo(unixSeconds: number): string {
   const years = Math.floor(days / 365);
   return `${years} year${years === 1 ? '' : 's'} ago`;
 }
+
+// for formatting time
+export function formatHour(hour: number): string {
+  if (hour === 0) return '12 AM';
+  if (hour === 12) return '12 PM';
+  return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+}
