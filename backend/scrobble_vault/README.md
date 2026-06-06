@@ -45,15 +45,15 @@ This document describes the response for the `GET /music-summary` endpoint.
     },
   "listening_clock": {
     "peak_hour": { // if no peak_hour null
-      "hour": 0,
-      "scrobbles": 0,
+      "hour": 0, // 0 is 12:00AM
+      "average_scrobbles": 0,
       "average_listening_seconds": 0,
       "average_listening_string": "12h 3m 4s"
     },
     "hours": [
       {
-        "hour": 0,
-        "scrobbles": 0,
+        "hour": 0, // 0 is 12:00AM
+        "average_scrobbles": 0,
         "average_listening_seconds": 0,
         "average_listening_string": "12h 3m 4s"
       },
@@ -64,7 +64,7 @@ This document describes the response for the `GET /music-summary` endpoint.
     "peak_day": { // if no peak_day null
       "weekday_index": 1, // 1 = Monday, 7 = Sunday
       "weekday": "Monday",
-      "scrobbles": 0,
+      "average_scrobbles": 0,
       "average_listening_seconds": 0,
       "average_listening_string": "12h 3m 4s"
     },
@@ -72,7 +72,7 @@ This document describes the response for the `GET /music-summary` endpoint.
       {
         "weekday_index": 1,
         "weekday": "Monday",
-        "scrobbles": 0,
+        "average_scrobbles": 0,
         "average_listening_seconds": 0,
         "average_listening_string": "12h 3m 4s"
       },

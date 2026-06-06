@@ -160,23 +160,23 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 				total_seconds = _ms_to_seconds(row["duration_ms"])
 				# average listening seconds for this hour across the timeframe (seconds/day)
 				avg_seconds = int(total_seconds / denom_days) if denom_days > 0 else 0
+				avg_scrobbles = int(row["scrobbles"] / denom_days) if denom_days > 0 else 0
 				clock_hours.append(
 					{
 						"hour": row["hour"],
-						"scrobbles": row["scrobbles"],
+						"average_scrobbles": avg_scrobbles,
 						"average_listening_seconds": avg_seconds,
 						"average_listening_string": _format_duration_string(avg_seconds),
 					}
 				)
 
 			# Fill missing hours so the API always returns 24 hour entries
-			# default hours: don't include human readable string when zero
-			all_hours = {h: {"hour": h, "scrobbles": 0, "average_listening_seconds": 0} for h in range(24)}
+			all_hours = {h: {"hour": h, "average_scrobbles": 0, "average_listening_seconds": 0} for h in range(24)}
 			for hour_stat in clock_hours:
 				all_hours[hour_stat["hour"]] = hour_stat
 			clock_hours_full = [all_hours[h] for h in range(24)]
 
-			peak_hour = max(clock_hours_full, key=lambda item: item["scrobbles"]) if clock_hours_full else None
+			peak_hour = max(clock_hours_full, key=lambda item: item["average_listening_seconds"]) if clock_hours_full else None
 			stats["listening_clock"] = {
 				"peak_hour": peak_hour,
 				"hours": clock_hours_full
@@ -190,11 +190,12 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 				total_seconds = _ms_to_seconds(row["duration_ms"])
 				# average listening seconds for this weekday across the timeframe (seconds/weekday occurrence)
 				avg_seconds = int(total_seconds / weeks) if weeks > 0 else 0
+				avg_scrobbles = int(row["scrobbles"] / weeks) if weeks > 0 else 0
 				weekday_stats.append(
 					{
 						"weekday_index": row["weekday_index"],
 						"weekday": _weekday_name(row["weekday_index"]),
-						"scrobbles": row["scrobbles"],
+						"average_scrobbles": avg_scrobbles,
 						"average_listening_seconds": avg_seconds,
 						"average_listening_string": _format_duration_string(avg_seconds),
 					}
@@ -205,7 +206,7 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 				weekday_index: {
 					"weekday_index": weekday_index,
 					"weekday": _weekday_name(weekday_index),
-					"scrobbles": 0,
+					"average_scrobbles": 0,
 					"average_listening_seconds": 0,
 					"average_listening_string": _format_duration_string(0),
 				}
@@ -214,7 +215,7 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 			for weekday_stat in weekday_stats:
 				all_weekdays[weekday_stat["weekday_index"]] = weekday_stat
 			weekday_list_full = [all_weekdays[weekday_index] for weekday_index in range(1, 8)]
-			peak_weekday = max(weekday_list_full, key=lambda item: item["scrobbles"]) if weekday_list_full else None
+			peak_weekday = max(weekday_list_full, key=lambda item: item["average_listening_seconds"]) if weekday_list_full else None
 			stats["listening_weekday"] = {
 				"peak_day": peak_weekday,
 				"days": weekday_list_full,
