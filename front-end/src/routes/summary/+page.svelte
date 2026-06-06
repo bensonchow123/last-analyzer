@@ -60,20 +60,23 @@
 				<p class="text-base text-white mt-1">{stats.total_scrobbles.toLocaleString()}</p>
 				<p class="text-xs text-white/50">{stats.active_days} active days</p>
 			</div>
-			<!--Total unique artists-->
+			<!--Total unique artists, inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">Unique artists</p>
 				<p class="text-base text-white mt-1">{stats.unique_artists_count.toLocaleString()}</p>
+				<p class="text-xs invisible">.</p>
 			</div>
-			<!--Total unique albumns-->
+			<!--Total unique albumns, inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">Unique albums</p>
 				<p class="text-base text-white mt-1">{stats.unique_albums_count.toLocaleString()}</p>
+				<p class="text-xs invisible">.</p>
 			</div>
-			<!--Total unique albumns-->
+			<!--Total unique albumns, inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">Unique tracks</p>
 				<p class="text-base text-white mt-1">{stats.unique_tracks_count.toLocaleString()}</p>
+				<p class="text-xs invisible">.</p>
 			</div>
 			<!--Listening time-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
@@ -85,7 +88,7 @@
                 {/if}
 				<p class="text-xs text-white/50">Missing dur: {stats.listening_time.missing_duration_count} tracks</p>
 			</div>
-			<!--First scrobble-->
+			<!--First scrobble,inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">First track recorded</p>
 				{#if stats.first_listened_at}
@@ -97,9 +100,10 @@
 					</p>
 				{:else}
 					<p class="text-base text-white/50 mt-1">—</p>
+					<p class="text-xs invisible">.</p>
 				{/if}
 			</div>
-			<!--Last scrobble-->
+			<!--Last scrobble, inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">Last track recorded</p>
 				{#if stats.last_listened_at}
@@ -111,9 +115,10 @@
 					</p>
 				{:else}
 					<p class="text-base text-white/50 mt-1">—</p>
+					<p class="text-xs invisible">.</p>
 				{/if}
 			</div>
-			<!--Most active day-->
+			<!--Most active day, inviside third row so card size consistant-->
 			<div class="bg-[#131311] border border-violet-600/50 rounded-lg p-3">
 				<p class="text-sm text-white/70">Most active day</p>
 				{#if stats.most_active_day}
@@ -125,11 +130,13 @@
 					</p>
 				{:else}
 					<p class="text-base text-white/50 mt-1">—</p>
+					<p class="text-xs invisible">.</p>
 				{/if}
 			</div>
         </div>
-        <!-- Overview row 3 -->
+        <!-- Overview row 3 (the highlight cards)-->
 		<div>
+			
 		</div>
     </section>
     
