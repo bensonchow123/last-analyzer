@@ -94,7 +94,8 @@ This document describes the response for the `GET /music-summary` endpoint.
       "artist_image_large": "string | null",
       "artist_image_medium": "string | null",
       "artist_image_small": "string | null"
-    }
+    },
+    // ... (top 10 artists or [])
   ],
   "top_albums": [
     {
@@ -107,6 +108,7 @@ This document describes the response for the `GET /music-summary` endpoint.
       "album_image_medium": "string | null",
       "album_image_small": "string | null"
     }
+    // ... (top 10 albums or [])
   ],
   "top_tracks": [
     {
@@ -127,6 +129,7 @@ This document describes the response for the `GET /music-summary` endpoint.
       "album_image_medium": "string | null",
       "album_image_small": "string | null"
     }
+    // ... (top 10 tracks or [])
   ],
   "new_in_timeframe": {
     "artists_count": 0,
