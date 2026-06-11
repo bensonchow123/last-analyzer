@@ -131,7 +131,7 @@ This document describes the response for the `GET /music-summary` endpoint.
     }
     // ... (top 10 tracks or [])
   ],
-  "new_in_timeframe": {
+  "new_in_timeframe": { // null for `all_time` time period
     "artists_count": 0,
     "artists": [
       {
@@ -142,7 +142,8 @@ This document describes the response for the `GET /music-summary` endpoint.
         "artist_image_large": "string | null",
         "artist_image_medium": "string | null",
         "artist_image_small": "string | null"
-      }
+      },
+      // ... all new in timeframe artists or []
     ],
     "albums_count": 0,
     "albums": [
@@ -155,7 +156,8 @@ This document describes the response for the `GET /music-summary` endpoint.
         "album_image_large": "string | null",
         "album_image_medium": "string | null",
         "album_image_small": "string | null"
-      }
+      },
+      // ... all new in timeframe albums or []
     ],
     "tracks_count": 0,
     "tracks": [
@@ -176,7 +178,8 @@ This document describes the response for the `GET /music-summary` endpoint.
         "album_image_large": "string | null",
         "album_image_medium": "string | null",
         "album_image_small": "string | null"
-      }
+      }, 
+      // ... all new in timeframe tracks or []
     ]
   },
   "recent_tracks": [
