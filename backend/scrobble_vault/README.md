@@ -143,7 +143,7 @@ This document describes the response for the `GET /music-summary` endpoint.
         "artist_image_medium": "string | null",
         "artist_image_small": "string | null"
       },
-      // ... all new in timeframe artists or []
+      // ... all new in timeframe artists, sorted by plays, tie broken by most recently discovered artists, then artist name, [] if empty
     ],
     "albums_count": 0,
     "albums": [
@@ -157,7 +157,7 @@ This document describes the response for the `GET /music-summary` endpoint.
         "album_image_medium": "string | null",
         "album_image_small": "string | null"
       },
-      // ... all new in timeframe albums or []
+      // ... all new in timeframe albums, sorted by plays, tie broken by most recently discovered albums, then artist and album name, [] if empty
     ],
     "tracks_count": 0,
     "tracks": [
@@ -179,7 +179,7 @@ This document describes the response for the `GET /music-summary` endpoint.
         "album_image_medium": "string | null",
         "album_image_small": "string | null"
       }, 
-      // ... all new in timeframe tracks or []
+      // ... all new in timeframe tracks, sorted by plays, tie broken by most recently discovred tracks, then artist and track name, [] if empty
     ]
   },
   "recent_tracks": [
