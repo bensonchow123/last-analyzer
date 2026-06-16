@@ -33,6 +33,8 @@
         {/if}
     </section>
 
+	<!-- recent tracks -->
+
     <!-- time period tab buttons, on click update the `selectedPeriod` variable -->
     <!-- Use CSS flexbox as the periods doesn't have uniformed length -->
     <section class="flex gap-2 mt-4">
@@ -52,6 +54,7 @@
             </button>
         {/each}
     </section>
+
 
     <!-- Everything below uses the `selectedPeriod` variable -->
     <!-- Overview section -->
@@ -356,7 +359,186 @@
 			{/each}
 		</div>
 	</section>
-    <!-- new discoveries -->
+
+	<!-- New discoveries section -->
+	<!-- This section doesn't exist for the `all_time` time period so need this if statement -->
+	{#if stats.new_in_timeframe}
+
+		<!-- The white seperator -->
+		<hr class="my-4 border-t border-white/20"/>
+
+		<!-- Actual beginning of the section -->
+		<section>
+			<!-- Title -->
+			<p class="text-white text-lg">NEW DISCOVERIES</p>
+
+			<!-- Time period sub heading -->
+			<p class="text-sm text-white/40 mt-1">
+				First-time listens in {period.label.toLowerCase()}
+			</p>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+				<!-- New artists -->
+				<div>
+					<!-- Only show the first 10 artists/ track /album but still display how many is there in total-->
+					<p class="text-sm text-white/40 mt-2 mb-2">
+						Artists
+						{#if stats.new_in_timeframe.artists_count > 10}
+							<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.artists_count}</span>
+						{/if}
+					</p>
+					<!-- There might not be any new in timeframe artist / albums / tracks-->
+					{#if stats.new_in_timeframe.artists.length > 0}
+						{#each stats.new_in_timeframe.artists.slice(0, 10) as artist, i}
+							<!-- The styling is basicly the same as the top tracks section -->
+							{@const maxPlays = stats.new_in_timeframe.artists[0].plays}
+							{@const artistImage = artist.artist_image_extralarge ?? artist.artist_image_large ?? artist.artist_image_medium ?? artist.artist_image_small}
+
+							<div class="relative flex items-center gap-3 py-3">
+								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
+									{i + 1}
+								</span>
+
+								{#if artistImage}
+									<img
+										src={artistImage} alt={artist.artist_name}
+										referrerpolicy="no-referrer"
+										class="w-9 h-9 rounded-md object-cover shrink-0"
+									/>
+								{:else}
+									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
+										{artist.artist_name[0].toUpperCase()}
+									</div>
+								{/if}
+
+								<div class="min-w-0 flex-1">
+									<p class="text-sm text-white truncate">{artist.artist_name}</p>
+									<p class="text-xs text-white/40">Discovered {timeAgo(artist.first_listened_at)}</p>
+								</div>
+
+								<span class="text-xs text-white/30">{artist.plays.toLocaleString()} plays</span>
+
+								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
+									<div class="h-full bg-violet-500 rounded-full"
+										style="width: {(artist.plays / maxPlays) * 100}%">
+									</div>
+								</div>
+							</div>
+						{/each}
+					{:else}
+						<p class="text-sm text-white/30">No new artists this period</p>
+					{/if}
+				</div>
+
+				<!-- New albums -->
+				<!-- See artist chart for documentation-->
+				<div>
+					<p class="text-sm text-white/40 mt-2 mb-2">
+						Albums
+						{#if stats.new_in_timeframe.albums_count > 10}
+							<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.albums_count}</span>
+						{/if}
+					</p>
+					{#if stats.new_in_timeframe.albums.length > 0}
+						{#each stats.new_in_timeframe.albums.slice(0, 10) as album, i}
+							{@const maxPlays = stats.new_in_timeframe.albums[0].plays}
+							{@const albumImage = album.album_image_extralarge ?? album.album_image_large ?? album.album_image_medium ?? album.album_image_small}
+
+							<div class="relative flex items-center gap-3 py-3">
+								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
+									{i + 1}
+								</span>
+
+								{#if albumImage}
+									<img
+										src={albumImage} alt={album.album_name}
+										referrerpolicy="no-referrer"
+										class="w-9 h-9 rounded-md object-cover shrink-0"
+									/>
+								{:else}
+									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
+										{album.album_name[0].toUpperCase()}
+									</div>
+								{/if}
+
+								<div class="min-w-0 flex-1">
+									<p class="text-sm text-white truncate">{album.album_name}</p>
+									<p class="text-xs text-white/40 truncate">{album.artist_name} · discovered {timeAgo(album.first_listened_at)}</p>
+								</div>
+
+								<span class="text-xs text-white/30">{album.plays.toLocaleString()} plays</span>
+
+								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
+									<div class="h-full bg-violet-500 rounded-full"
+										style="width: {(album.plays / maxPlays) * 100}%">
+									</div>
+								</div>
+							</div>
+						{/each}
+					{:else}
+						<p class="text-sm text-white/30">No new albums this period</p>
+					{/if}
+				</div>
+			</div>
+
+			<!-- New tracks -->
+			<!-- See artist chart for documentation -->
+			<div>
+				<p class="text-sm text-white/40 mt-2 mb-2">
+					Tracks
+					{#if stats.new_in_timeframe.tracks_count > 10}
+						<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.tracks_count}</span>
+					{/if}
+				</p>
+				{#if stats.new_in_timeframe.tracks.length > 0}
+					{#each stats.new_in_timeframe.tracks.slice(0, 10) as track, i}
+						{@const maxPlays = stats.new_in_timeframe.tracks[0].plays}
+						{@const trackImage =
+							track.album_image_extralarge ??
+							track.album_image_large ??
+							track.album_image_medium ??
+							track.album_image_small ??
+							track.artist_image_extralarge ??
+							track.artist_image_large ??
+							track.artist_image_medium ??
+							track.artist_image_small}
+
+						<div class="relative flex items-center gap-3 py-3">
+							<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
+								{i + 1}
+							</span>
+
+							{#if trackImage}
+								<img
+									src={trackImage} alt={track.track_name}
+									referrerpolicy="no-referrer"
+									class="w-9 h-9 rounded-md object-cover shrink-0"
+								/>
+							{:else}
+								<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
+									{track.track_name[0].toUpperCase()}
+								</div>
+							{/if}
+
+							<div class="min-w-0 flex-1">
+								<p class="text-sm text-white truncate">{track.track_name}</p>
+								<p class="text-xs text-white/40 truncate">{track.artist_name} · discovered {timeAgo(track.first_listened_at)}</p>
+							</div>
+
+							<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
+
+							<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
+								<div class="h-full bg-violet-500 rounded-full"
+									style="width: {(track.plays / maxPlays) * 100}%">
+								</div>
+							</div>
+						</div>
+					{/each}
+				{:else}
+					<p class="text-sm text-white/30">No new tracks this period</p>
+				{/if}
+			</div>
+		</section>
+	{/if}
     <!-- listening clock -->
-    <!-- recent tracks -->
 </div>
