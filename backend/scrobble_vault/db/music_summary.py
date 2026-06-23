@@ -153,14 +153,23 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 			}
 
 			# Listening clock calculation: compute per-hour totals and average listening time per day
-			# Denominator: number of days in the window, or active_days when all-time
-			denom_days = days if days is not None else max(1, stats.get("active_days", 1))
+			# Calculate denominator: number of days in window, if not found, use `active_days`
+			if days is not None:
+				denom_days = days
+			else:
+				first = stats.get("first_listened_at")
+				last = stats.get("last_listened_at")
+				if first and last:
+					denom_days = max(1, math.ceil((last - first) / 86400))
+				else:
+					denom_days = max(1, stats.get("active_days", 1))
+			
 			clock_hours = []
 			for row in clock_rows:
 				total_seconds = _ms_to_seconds(row["duration_ms"])
 				# average listening seconds for this hour across the timeframe (seconds/day)
 				avg_seconds = int(total_seconds / denom_days) if denom_days > 0 else 0
-				avg_scrobbles = int(row["scrobbles"] / denom_days) if denom_days > 0 else 0
+				avg_scrobbles = round(row["scrobbles"] / denom_days, 2) if denom_days > 0 else 0
 				clock_hours.append(
 					{
 						"hour": row["hour"],
@@ -183,14 +192,14 @@ async def _summary_for_period(period_key: str, days: int | None) -> dict[str, An
 			}
 
 			# Listening weekday calculations, compute average listening time for the weekday across weeks
-			# Estimate number of weeks in window by rounding up days/7, uses `active_days` for all_time
+			# Estimate number of weeks in window by rounding up days/7
 			weekday_stats = []
-			weeks = math.ceil((days if days is not None else max(1, stats.get("active_days", 1))) / 7)
+			weeks = max(1, math.ceil(denom_days / 7))
 			for row in weekday_rows:
 				total_seconds = _ms_to_seconds(row["duration_ms"])
 				# average listening seconds for this weekday across the timeframe (seconds/weekday occurrence)
 				avg_seconds = int(total_seconds / weeks) if weeks > 0 else 0
-				avg_scrobbles = int(row["scrobbles"] / weeks) if weeks > 0 else 0
+				avg_scrobbles = round(row["scrobbles"] / weeks, 2) if weeks > 0 else 0
 				weekday_stats.append(
 					{
 						"weekday_index": row["weekday_index"],
