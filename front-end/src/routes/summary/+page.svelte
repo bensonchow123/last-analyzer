@@ -1,5 +1,6 @@
 <!-- scrobble vault /summary endpoint frontend -->
 <script lang="ts">
+	import BarChart from '$lib/components/summary/barchart.svelte';
 	// import utils used
     import { timeAgo, formatHour } from '$lib/utils';
 
@@ -18,6 +19,9 @@
     );
 	const period = $derived(data.summary.periods[selectedPeriod]);
   	const stats = $derived(period.stats);
+
+	// shift UTC timezone to user local timezone
+	const utcOffset = Math.round(new Date().getTimezoneOffset() / -60);
 </script>
 
 <!-- Main div, with 100vh and background colour of #0f0f0f, pad on all sides by 6 * 4px, so 24px -->
@@ -159,7 +163,7 @@
 				</div>
 				<p class="text-sm text-white/70 mt-1">Average peak hour</p>
 				{#if stats.listening_clock.peak_hour}
-					<p class="text-base text-white mt-1">{formatHour(stats.listening_clock.peak_hour.hour)}</p>
+					<p class="text-base text-white mt-1">{formatHour((stats.listening_clock.peak_hour.hour + utcOffset + 24) % 24)}</p>
 					<p class="text-xs text-white/50">
 						{stats.listening_clock.peak_hour.average_listening_string} avg · 
 						{stats.listening_clock.peak_hour.average_scrobbles} avg 
@@ -220,7 +224,7 @@
 	<section>
 		<p class="text-white text-lg">TOP CHARTS</p>
 		
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 			<!-- Top artists -->
 			<div>
 				<p class="text-sm text-white/40 mt-2 mb-2">Artists</p>
@@ -309,54 +313,54 @@
 					</div>
 				{/each}
 			</div>
-		</div>
-		<!-- Top tracks, see artist chart for documentation -->
-		<div>
-			<p class="text-sm text-white/40 mt-2 mb-2">Tracks</p>
-			{#each stats.top_tracks as track, i}
-				{@const maxPlays = stats.top_tracks[0].plays}
-				{@const trackImage = 
-				track.album_image_extralarge ?? 
-				track.album_image_large ?? 
-				track.album_image_medium ?? 
-				track.album_image_small ?? 
-				track.artist_image_extralarge ?? 
-				track.artist_image_large ?? 
-				track.artist_image_medium ?? 
-				track.artist_image_small}
+			<!-- Top tracks, see artist chart for documentation -->
+			<div>
+				<p class="text-sm text-white/40 mt-2 mb-2">Tracks</p>
+				{#each stats.top_tracks as track, i}
+					{@const maxPlays = stats.top_tracks[0].plays}
+					{@const trackImage = 
+					track.album_image_extralarge ?? 
+					track.album_image_large ?? 
+					track.album_image_medium ?? 
+					track.album_image_small ?? 
+					track.artist_image_extralarge ?? 
+					track.artist_image_large ?? 
+					track.artist_image_medium ?? 
+					track.artist_image_small}
 
-				<div class="relative flex items-center gap-3 py-3">
-					<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-						{i + 1}
-					</span>
+					<div class="relative flex items-center gap-3 py-3">
+						<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
+							{i + 1}
+						</span>
 
-					{#if trackImage}
-						<img 
-							src={trackImage} alt={track.track_name}
-							referrerpolicy="no-referrer"
-							class="w-9 h-9 rounded-md object-cover shrink-0"
-						/>
-					{:else}
-						<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-							{track.track_name[0].toUpperCase()}
+						{#if trackImage}
+							<img 
+								src={trackImage} alt={track.track_name}
+								referrerpolicy="no-referrer"
+								class="w-9 h-9 rounded-md object-cover shrink-0"
+							/>
+						{:else}
+							<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
+								{track.track_name[0].toUpperCase()}
+							</div>
+						{/if}
+
+						<!-- Also show artist name -->
+						<div class="min-w-0 flex-1">
+							<p class="text-sm text-white truncate">{track.track_name}</p>
+							<p class="text-xs text-white/40 truncate">{track.artist_name}</p>
 						</div>
-					{/if}
 
-					<!-- Also show artist name -->
-					<div class="min-w-0 flex-1">
-						<p class="text-sm text-white truncate">{track.track_name}</p>
-						<p class="text-xs text-white/40 truncate">{track.artist_name}</p>
-					</div>
+						<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
 
-					<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
-
-					<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-						<div class="h-full bg-violet-500 rounded-full"
-							style="width: {(track.plays / maxPlays) * 100}%">
+						<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
+							<div class="h-full bg-violet-500 rounded-full"
+								style="width: {(track.plays / maxPlays) * 100}%">
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
+				{/each}
+			</div>
 		</div>
 	</section>
 
@@ -377,7 +381,7 @@
 				First-time listens in {period.label.toLowerCase()}
 			</p>
 
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 				<!-- New artists -->
 				<div>
 					<!-- Only show the first 10 artists/ track /album but still display how many is there in total-->
@@ -479,66 +483,99 @@
 						<p class="text-sm text-white/30">No new albums this period</p>
 					{/if}
 				</div>
-			</div>
+				<!-- New tracks -->
+				<!-- See artist chart for documentation -->
+				<div>
+					<p class="text-sm text-white/40 mt-2 mb-2">
+						Tracks
+						{#if stats.new_in_timeframe.tracks_count > 10}
+							<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.tracks_count}</span>
+						{/if}
+					</p>
+					{#if stats.new_in_timeframe.tracks.length > 0}
+						{#each stats.new_in_timeframe.tracks.slice(0, 10) as track, i}
+							{@const maxPlays = stats.new_in_timeframe.tracks[0].plays}
+							{@const trackImage =
+								track.album_image_extralarge ??
+								track.album_image_large ??
+								track.album_image_medium ??
+								track.album_image_small ??
+								track.artist_image_extralarge ??
+								track.artist_image_large ??
+								track.artist_image_medium ??
+								track.artist_image_small}
 
-			<!-- New tracks -->
-			<!-- See artist chart for documentation -->
-			<div>
-				<p class="text-sm text-white/40 mt-2 mb-2">
-					Tracks
-					{#if stats.new_in_timeframe.tracks_count > 10}
-						<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.tracks_count}</span>
+							<div class="relative flex items-center gap-3 py-3">
+								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
+									{i + 1}
+								</span>
+
+								{#if trackImage}
+									<img
+										src={trackImage} alt={track.track_name}
+										referrerpolicy="no-referrer"
+										class="w-9 h-9 rounded-md object-cover shrink-0"
+									/>
+								{:else}
+									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
+										{track.track_name[0].toUpperCase()}
+									</div>
+								{/if}
+
+								<div class="min-w-0 flex-1">
+									<p class="text-sm text-white truncate">{track.track_name}</p>
+									<p class="text-xs text-white/40 truncate">{track.artist_name} · discovered {timeAgo(track.first_listened_at)}</p>
+								</div>
+
+								<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
+
+								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
+									<div class="h-full bg-violet-500 rounded-full"
+										style="width: {(track.plays / maxPlays) * 100}%">
+									</div>
+								</div>
+							</div>
+						{/each}
+					{:else}
+						<p class="text-sm text-white/30">No new tracks this period</p>
 					{/if}
-				</p>
-				{#if stats.new_in_timeframe.tracks.length > 0}
-					{#each stats.new_in_timeframe.tracks.slice(0, 10) as track, i}
-						{@const maxPlays = stats.new_in_timeframe.tracks[0].plays}
-						{@const trackImage =
-							track.album_image_extralarge ??
-							track.album_image_large ??
-							track.album_image_medium ??
-							track.album_image_small ??
-							track.artist_image_extralarge ??
-							track.artist_image_large ??
-							track.artist_image_medium ??
-							track.artist_image_small}
-
-						<div class="relative flex items-center gap-3 py-3">
-							<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-								{i + 1}
-							</span>
-
-							{#if trackImage}
-								<img
-									src={trackImage} alt={track.track_name}
-									referrerpolicy="no-referrer"
-									class="w-9 h-9 rounded-md object-cover shrink-0"
-								/>
-							{:else}
-								<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-									{track.track_name[0].toUpperCase()}
-								</div>
-							{/if}
-
-							<div class="min-w-0 flex-1">
-								<p class="text-sm text-white truncate">{track.track_name}</p>
-								<p class="text-xs text-white/40 truncate">{track.artist_name} · discovered {timeAgo(track.first_listened_at)}</p>
-							</div>
-
-							<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
-
-							<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-								<div class="h-full bg-violet-500 rounded-full"
-									style="width: {(track.plays / maxPlays) * 100}%">
-								</div>
-							</div>
-						</div>
-					{/each}
-				{:else}
-					<p class="text-sm text-white/30">No new tracks this period</p>
-				{/if}
+				</div>
 			</div>
 		</section>
 	{/if}
-    <!-- listening clock -->
+    <!-- The white seperator -->
+	<hr class="my-4 border-t border-white/20"/>
+	
+	<!-- Listening patterns section -->
+	<section>
+		<!--Title-->
+		<p class="text-white text-lg">LISTENING PATTERNS</p>
+		
+		<!--Hour of day chart-->
+		<p class="text-sm text-white/40 mt-2 mb-4">Hour of day (avg tracks per hour)</p>
+		<BarChart
+			bars={stats.listening_clock.hours.map((_, i) => {
+				const h = stats.listening_clock.hours[(i - utcOffset + 24) % 24];
+				return {
+					value: h.average_scrobbles,
+					label: formatHour(i),
+					sublabel: `${h.average_scrobbles} avg · ${h.average_listening_string}`,
+					isPeak: ((stats.listening_clock.peak_hour?.hour ?? -1) + utcOffset + 24) % 24 === i
+				};
+			})}
+			xLabels={[[0,'12am'],[6,'6am'],[12,'12pm'],[18,'6pm'],[23,'11pm']]}
+		/>
+
+		<!--Day of week chart-->
+		<p class="text-sm text-white/40 mt-4 mb-4">Day of week (avg tracks per weekday)</p>
+		<BarChart
+			bars={stats.listening_weekday.days.map(d => ({
+				value: d.average_scrobbles,
+				label: d.weekday,
+				sublabel: `${d.average_scrobbles} avg · ${d.average_listening_string}`,
+				isPeak: d.weekday_index === stats.listening_weekday.peak_day?.weekday_index
+			}))}
+			xLabels={stats.listening_weekday.days.map((d, i) => [i, d.weekday.slice(0, 3)])}
+		/>
+	</section>
 </div>
