@@ -1,6 +1,7 @@
 <!-- scrobble vault /summary endpoint frontend -->
 <script lang="ts">
 	import BarChart from '$lib/components/summary/barchart.svelte';
+	import RankChart from '$lib/components/summary/rankchart.svelte';
 	// import utils used
     import { timeAgo, formatHour } from '$lib/utils';
 
@@ -281,141 +282,34 @@
 		<p class="text-white text-lg">TOP CHARTS</p>
 		
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-			<!-- Top artists -->
+			<!-- Top artists, no subname as there is no extra info to show -->
 			<div>
 				<p class="text-sm text-white/40 mt-2 mb-2">Artists</p>
-				{#each stats.top_artists as artist, i}
-					{@const maxPlays = stats.top_artists[0].plays}
-					{@const artistImage = artist.artist_image_extralarge ?? artist.artist_image_large ?? artist.artist_image_medium ?? artist.artist_image_small}
-					
-					<!-- The bar is an absolute positioned element to take up no space, relative make it anchored to this div instead -->
-					<!-- Item center makes all items except the bar centered vertically-->
-					<div class="relative flex items-center gap-3 py-3">
-						<!--The ranking numbers, w-4 makes the double digit numbers rows not inconsistent-->
-						<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-							{i + 1}
-						</span>
-						
-						<!-- The artist image -->
-						{#if artistImage}
-							<!--The classes set perfered size, round corners, fill perfer size then prevent flex from squishing it-->
-							<img 
-								src={artistImage} alt={artist.artist_name}
-								referrerpolicy="no-referrer"
-								class="w-9 h-9 rounded-md object-cover shrink-0"
-							/>
-						{:else}
-							<!--If no image display the first letter of artist name-->
-							<!--Same as the image, but instead of img, create another flex container and center in both axis, in it display the text -->
-							<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-								{artist.artist_name[0].toUpperCase()}
-							</div>
-						{/if}
-
-						<!-- Artist name, truncate if too long, take up all remaining space, min-w-0 prevent overflow and prevent the play count off screen-->
-						<div class="min-w-0 flex-1">
-							<p class="text-sm text-white truncate">{artist.artist_name}</p>
-						</div>
-
-						<!-- Play count-->
-						<span class="text-xs text-white/30">{artist.plays.toLocaleString()} plays</span>
-
-						<!-- Play count comparison bar, pin to very bottom edge of parent, set to 1px height and use background colour to show unfilled portion. -->
-						<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-							<!-- Filled portion, fill entiere 1 px, and round the bar corners -->
-							<div class="h-full bg-violet-500 rounded-full"
-								style="width: {(artist.plays / maxPlays) * 100}%">
-							</div>
-						</div>
-					</div>
-				{/each}
+				<RankChart rows={stats.top_artists.map(a => ({
+					name: a.artist_name,
+					image: a.artist_image_extralarge ?? a.artist_image_large ?? a.artist_image_medium ?? a.artist_image_small,
+					plays: a.plays
+				}))} />
 			</div>
-			<!-- Top albums, see artist chart for documentation-->
+			<!-- Top albums, subname shows the artist name under the album -->
 			<div>
 				<p class="text-sm text-white/40 mt-2 mb-2">Albums</p>
-				{#each stats.top_albums as album, i}
-					{@const maxPlays = stats.top_albums[0].plays}
-					{@const albumImage = album.album_image_extralarge ?? album.album_image_large ?? album.album_image_medium ?? album.album_image_small}
-
-					<div class="relative flex items-center gap-3 py-3">
-						<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-							{i + 1}
-						</span>
-
-						{#if albumImage}
-							<img 
-								src={albumImage} alt={album.album_name}
-								referrerpolicy="no-referrer"
-								class="w-9 h-9 rounded-md object-cover shrink-0"
-							/>
-						{:else}
-							<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-								{album.album_name[0].toUpperCase()}
-							</div>
-						{/if}
-
-						<div class="min-w-0 flex-1">
-							<p class="text-sm text-white truncate">{album.album_name}</p>
-							<p class="text-xs text-white/40 truncate">{album.artist_name}</p>
-						</div>
-
-						<span class="text-xs text-white/30">{album.plays.toLocaleString()} plays</span>
-
-						<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-							<div class="h-full bg-violet-500 rounded-full"
-								style="width: {(album.plays / maxPlays) * 100}%">
-							</div>
-						</div>
-					</div>
-				{/each}
+				<RankChart rows={stats.top_albums.map(a => ({
+					name: a.album_name,
+					subname: a.artist_name,
+					image: a.album_image_extralarge ?? a.album_image_large ?? a.album_image_medium ?? a.album_image_small,
+					plays: a.plays
+				}))} />
 			</div>
-			<!-- Top tracks, see artist chart for documentation -->
+			<!-- Top tracks, subname shows the artist name, prefer album image then fall back to artist image -->
 			<div>
 				<p class="text-sm text-white/40 mt-2 mb-2">Tracks</p>
-				{#each stats.top_tracks as track, i}
-					{@const maxPlays = stats.top_tracks[0].plays}
-					{@const trackImage = 
-					track.album_image_extralarge ?? 
-					track.album_image_large ?? 
-					track.album_image_medium ?? 
-					track.album_image_small ?? 
-					track.artist_image_extralarge ?? 
-					track.artist_image_large ?? 
-					track.artist_image_medium ?? 
-					track.artist_image_small}
-
-					<div class="relative flex items-center gap-3 py-3">
-						<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-							{i + 1}
-						</span>
-
-						{#if trackImage}
-							<img 
-								src={trackImage} alt={track.track_name}
-								referrerpolicy="no-referrer"
-								class="w-9 h-9 rounded-md object-cover shrink-0"
-							/>
-						{:else}
-							<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-								{track.track_name[0].toUpperCase()}
-							</div>
-						{/if}
-
-						<!-- Also show artist name -->
-						<div class="min-w-0 flex-1">
-							<p class="text-sm text-white truncate">{track.track_name}</p>
-							<p class="text-xs text-white/40 truncate">{track.artist_name}</p>
-						</div>
-
-						<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
-
-						<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-							<div class="h-full bg-violet-500 rounded-full"
-								style="width: {(track.plays / maxPlays) * 100}%">
-							</div>
-						</div>
-					</div>
-				{/each}
+				<RankChart rows={stats.top_tracks.map(t => ({
+					name: t.track_name,
+					subname: t.artist_name,
+					image: t.album_image_extralarge ?? t.album_image_large ?? t.album_image_medium ?? t.album_image_small ?? t.artist_image_extralarge ?? t.artist_image_large ?? t.artist_image_medium ?? t.artist_image_small,
+					plays: t.plays
+				}))} />
 			</div>
 		</div>
 	</section>
@@ -438,60 +332,28 @@
 			</p>
 
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-				<!-- New artists -->
+				<!-- New artists, only show the first 10 but still display how many there are in total -->
 				<div>
-					<!-- Only show the first 10 artists/ track /album but still display how many is there in total-->
 					<p class="text-sm text-white/40 mt-2 mb-2">
 						Artists
 						{#if stats.new_in_timeframe.artists_count > 10}
 							<span class="text-white/25"> · showing 10 of {stats.new_in_timeframe.artists_count}</span>
 						{/if}
 					</p>
-					<!-- There might not be any new in timeframe artist / albums / tracks-->
+					<!-- There might not be any new in timeframe artists / albums / tracks -->
 					{#if stats.new_in_timeframe.artists.length > 0}
-						{#each stats.new_in_timeframe.artists.slice(0, 10) as artist, i}
-							<!-- The styling is basicly the same as the top tracks section -->
-							{@const maxPlays = stats.new_in_timeframe.artists[0].plays}
-							{@const artistImage = artist.artist_image_extralarge ?? artist.artist_image_large ?? artist.artist_image_medium ?? artist.artist_image_small}
-
-							<div class="relative flex items-center gap-3 py-3">
-								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-									{i + 1}
-								</span>
-
-								{#if artistImage}
-									<img
-										src={artistImage} alt={artist.artist_name}
-										referrerpolicy="no-referrer"
-										class="w-9 h-9 rounded-md object-cover shrink-0"
-									/>
-								{:else}
-									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-										{artist.artist_name[0].toUpperCase()}
-									</div>
-								{/if}
-
-								<div class="min-w-0 flex-1">
-									<p class="text-sm text-white truncate">{artist.artist_name}</p>
-									<p class="text-xs text-white/40">Discovered {timeAgo(artist.first_listened_at)}</p>
-								</div>
-
-								<span class="text-xs text-white/30">{artist.plays.toLocaleString()} plays</span>
-
-								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-									<div class="h-full bg-violet-500 rounded-full"
-										style="width: {(artist.plays / maxPlays) * 100}%">
-									</div>
-								</div>
-							</div>
-						{/each}
+						<RankChart rows={stats.new_in_timeframe.artists.slice(0, 10).map(a => ({
+							name: a.artist_name,
+							image: a.artist_image_extralarge ?? a.artist_image_large ?? a.artist_image_medium ?? a.artist_image_small,
+							plays: a.plays,
+							sublabel: `Discovered ${timeAgo(a.first_listened_at)}`
+						}))} />
 					{:else}
 						<p class="text-sm text-white/30">No new artists this period</p>
 					{/if}
 				</div>
 
-				<!-- New albums -->
-				<!-- See artist chart for documentation-->
+				<!-- New albums, see new artists for documentation -->
 				<div>
 					<p class="text-sm text-white/40 mt-2 mb-2">
 						Albums
@@ -500,47 +362,18 @@
 						{/if}
 					</p>
 					{#if stats.new_in_timeframe.albums.length > 0}
-						{#each stats.new_in_timeframe.albums.slice(0, 10) as album, i}
-							{@const maxPlays = stats.new_in_timeframe.albums[0].plays}
-							{@const albumImage = album.album_image_extralarge ?? album.album_image_large ?? album.album_image_medium ?? album.album_image_small}
-
-							<div class="relative flex items-center gap-3 py-3">
-								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-									{i + 1}
-								</span>
-
-								{#if albumImage}
-									<img
-										src={albumImage} alt={album.album_name}
-										referrerpolicy="no-referrer"
-										class="w-9 h-9 rounded-md object-cover shrink-0"
-									/>
-								{:else}
-									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-										{album.album_name[0].toUpperCase()}
-									</div>
-								{/if}
-
-								<div class="min-w-0 flex-1">
-									<p class="text-sm text-white truncate">{album.album_name}</p>
-									<p class="text-xs text-white/40 truncate">{album.artist_name} · discovered {timeAgo(album.first_listened_at)}</p>
-								</div>
-
-								<span class="text-xs text-white/30">{album.plays.toLocaleString()} plays</span>
-
-								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-									<div class="h-full bg-violet-500 rounded-full"
-										style="width: {(album.plays / maxPlays) * 100}%">
-									</div>
-								</div>
-							</div>
-						{/each}
+						<RankChart rows={stats.new_in_timeframe.albums.slice(0, 10).map(a => ({
+							name: a.album_name,
+							subname: a.artist_name,
+							image: a.album_image_extralarge ?? a.album_image_large ?? a.album_image_medium ?? a.album_image_small,
+							plays: a.plays,
+							sublabel: `discovered ${timeAgo(a.first_listened_at)}`
+						}))} />
 					{:else}
 						<p class="text-sm text-white/30">No new albums this period</p>
 					{/if}
 				</div>
-				<!-- New tracks -->
-				<!-- See artist chart for documentation -->
+				<!-- New tracks, see new artists for documentation -->
 				<div>
 					<p class="text-sm text-white/40 mt-2 mb-2">
 						Tracks
@@ -549,49 +382,13 @@
 						{/if}
 					</p>
 					{#if stats.new_in_timeframe.tracks.length > 0}
-						{#each stats.new_in_timeframe.tracks.slice(0, 10) as track, i}
-							{@const maxPlays = stats.new_in_timeframe.tracks[0].plays}
-							{@const trackImage =
-								track.album_image_extralarge ??
-								track.album_image_large ??
-								track.album_image_medium ??
-								track.album_image_small ??
-								track.artist_image_extralarge ??
-								track.artist_image_large ??
-								track.artist_image_medium ??
-								track.artist_image_small}
-
-							<div class="relative flex items-center gap-3 py-3">
-								<span class="text-xs w-4 text-right {i < 3 ? 'text-violet-400' : 'text-white/30'}">
-									{i + 1}
-								</span>
-
-								{#if trackImage}
-									<img
-										src={trackImage} alt={track.track_name}
-										referrerpolicy="no-referrer"
-										class="w-9 h-9 rounded-md object-cover shrink-0"
-									/>
-								{:else}
-									<div class="w-9 h-9 rounded-md bg-violet-500/10 shrink-0 flex items-center justify-center text-violet-400 text-sm font-medium">
-										{track.track_name[0].toUpperCase()}
-									</div>
-								{/if}
-
-								<div class="min-w-0 flex-1">
-									<p class="text-sm text-white truncate">{track.track_name}</p>
-									<p class="text-xs text-white/40 truncate">{track.artist_name} · discovered {timeAgo(track.first_listened_at)}</p>
-								</div>
-
-								<span class="text-xs text-white/30">{track.plays.toLocaleString()} plays</span>
-
-								<div class="absolute bottom-0 left-0 right-0 h-px bg-white/5">
-									<div class="h-full bg-violet-500 rounded-full"
-										style="width: {(track.plays / maxPlays) * 100}%">
-									</div>
-								</div>
-							</div>
-						{/each}
+						<RankChart rows={stats.new_in_timeframe.tracks.slice(0, 10).map(t => ({
+							name: t.track_name,
+							subname: t.artist_name,
+							image: t.album_image_extralarge ?? t.album_image_large ?? t.album_image_medium ?? t.album_image_small ?? t.artist_image_extralarge ?? t.artist_image_large ?? t.artist_image_medium ?? t.artist_image_small,
+							plays: t.plays,
+							sublabel: `discovered ${timeAgo(t.first_listened_at)}`
+						}))} />
 					{:else}
 						<p class="text-sm text-white/30">No new tracks this period</p>
 					{/if}
