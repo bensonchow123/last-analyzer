@@ -61,7 +61,7 @@ type WeekdaySlot = {
     average_listening_string: string;
 };
 
-type NewInTimeframe = {
+export type NewInTimeframe = {
     artists_count: number;
     artists: (TopArtist & { first_listened_at: number })[];
     albums_count: number;
@@ -70,7 +70,7 @@ type NewInTimeframe = {
     tracks: (TopTrack & { first_listened_at: number })[];
 };
 
-type PeriodStats = {
+export type PeriodStats = {
     total_scrobbles: number;
     active_days: number;
     first_listened_at: number | null;
