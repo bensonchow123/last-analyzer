@@ -47,4 +47,4 @@ LEFT JOIN artists a_by_name
 	AND a_by_name.artist_name_norm = LOWER(TRIM(es.artist_name))
 WHERE ($1::bigint IS NULL OR es.listened_at >= $1)
 GROUP BY nak.artist_key, nak.first_listened_at
-ORDER BY nak.first_listened_at DESC, plays DESC, artist_name ASC;
+ORDER BY plays DESC, nak.first_listened_at DESC, artist_name ASC;

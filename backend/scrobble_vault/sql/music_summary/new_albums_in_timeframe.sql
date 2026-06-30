@@ -43,4 +43,4 @@ LEFT JOIN albums al_by_id
 	ON al_by_id.id = es.album_id
 WHERE ($1::bigint IS NULL OR es.listened_at >= $1)
 GROUP BY nak.album_key, nak.first_listened_at
-ORDER BY nak.first_listened_at DESC, plays DESC, artist_name ASC, album_name ASC;
+ORDER BY plays DESC, nak.first_listened_at DESC, artist_name ASC, album_name ASC;
