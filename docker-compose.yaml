@@ -1,8 +1,19 @@
+# Profiles select which part of the stack runs on a given machine:
+#   docker compose up                            # every profile in COMPOSE_PROFILES (.env) — full stack
+#   docker compose --profile scrobble_vault up   # db + scrobble_vault only
+#   docker compose --profile frontend up         # front_end only (vault reached via SCROBBLE_VAULT_IPV4)
+# A --profile flag overrides COMPOSE_PROFILES, narrowing the stack to that role.
+#
+# SECURITY: the services have no authentication, so published ports bind to
+# 127.0.0.1 by default. To reach a service from another machine, set the
+# *_BIND_IP variables to a trusted interface (e.g. a VPN address) — never a
+# public one.
 services:
   db:
     image: pgvector/pgvector:pg18-trixie
     container_name: scrobble_vault_DB
     restart: always
+    profiles: ["scrobble_vault"]
     environment: # env for DB initalization
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_SUPER_USER} # the container needs this specific variable for the superuser
@@ -12,11 +23,57 @@ services:
       - POSTGRES_READ_ONLY_USER=${POSTGRES_READ_ONLY_USER}
       - POSTGRES_READ_ONLY_USER_PASSWORD=${POSTGRES_READ_ONLY_USER_PASSWORD}
     ports:
-      - "5432:5432"
+      # Host-side access for debugging with psql; scrobble_vault reaches the DB
+      # over the compose network, so this mapping is not needed for the app.
+      - "${POSTGRES_BIND_IP:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Persistant storage
       - scrobble_vault_DB_data:/var/lib/postgresql/
       # relative_host_path:container_path:read_only_permission, to create read only user on first run.
-      - ./backend/scrobble_vault/init_read_only_user.sh:/docker-entrypoint-initdb.d/init_read_only_user.sh:ro # 
+      - ./backend/scrobble_vault/init_read_only_user.sh:/docker-entrypoint-initdb.d/init_read_only_user.sh:ro
+    healthcheck:
+      # Without this scrobble_vault crash-loops racing Postgres startup.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPER_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  scrobble_vault:
+    build:
+      context: ./backend
+      dockerfile: scrobble_vault/Dockerfile
+    container_name: scrobble_vault
+    restart: unless-stopped
+    profiles: ["scrobble_vault"]
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db # override .env's localhost: inside the compose network the DB is reached by service name
+    ports:
+      - "${SCROBBLE_VAULT_BIND_IP:-127.0.0.1}:${SCROBBLE_VAULT_PORT:-8000}:${SCROBBLE_VAULT_PORT:-8000}"
+    volumes:
+      # Cache the sentence-transformers model download across container recreations
+      - hugging_face_cache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+
+  front_end:
+    build:
+      context: ./front-end
+    container_name: front_end
+    restart: unless-stopped
+    profiles: ["frontend"]
+    # Host networking so SCROBBLE_VAULT_IPV4 keeps its normal meaning — the
+    # vault's address as seen from this machine (127.0.0.1 when local, another
+    # host's address when remote). On a bridge network 127.0.0.1 would point at
+    # the container itself and break the local case.
+    network_mode: host
+    environment:
+      # The summary page's server-side load reads these at runtime ($env/dynamic).
+      - SCROBBLE_VAULT_IPV4=${SCROBBLE_VAULT_IPV4}
+      - SCROBBLE_VAULT_PORT=${SCROBBLE_VAULT_PORT:-8000}
+      - PORT=${FRONTEND_PORT:-3000}
+
 volumes:
   scrobble_vault_DB_data:
+  hugging_face_cache:
