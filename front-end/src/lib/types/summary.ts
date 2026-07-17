@@ -78,19 +78,20 @@ export type PeriodStats = {
     unique_artists_count: number;
     unique_tracks_count: number;
     unique_albums_count: number;
+    // These three are null when the period has no scrobbles
     listening_time: {
         total_seconds: number;
         total_string: string;
         missing_duration_count: number;
-    };
+    } | null;
     listening_clock: {
         peak_hour: HourSlot | null;
         hours: HourSlot[];
-    };
+    } | null;
     listening_weekday: {
         peak_day: WeekdaySlot;
         days: WeekdaySlot[];
-    };
+    } | null;
     most_active_day: {
         day: string;
         scrobbles: number;

@@ -46,13 +46,14 @@
 			<p class="text-sm text-white/70">Listening time</p>
 			{#if stats.listening_time && stats.listening_time.total_string}
 				<p class="text-base text-white mt-1">{stats.listening_time.total_string}</p>
+				<p class="text-xs text-white/50">
+					Missing dur: {stats.listening_time.missing_duration_count}
+					{stats.listening_time.missing_duration_count === 1 ? 'track' : 'tracks'}
+				</p>
 			{:else}
 				<p class="text-base text-white/50 mt-1">—</p>
+				<p class="text-xs invisible">.</p>
 			{/if}
-			<p class="text-xs text-white/50">
-				Missing dur: {stats.listening_time.missing_duration_count}
-				{stats.listening_time.missing_duration_count === 1 ? 'track' : 'tracks'}
-			</p>
 		</div>
 		<!--First scrobble,inviside third row so card size consistant-->
 		<div class="bg-[#131311] border border-violet-500/50 rounded-lg p-3">
@@ -111,7 +112,7 @@
 				<Clock/>
 			</div>
 			<p class="text-sm text-white/70 mt-1">Average peak hour</p>
-			{#if stats.listening_clock.peak_hour}
+			{#if stats.listening_clock?.peak_hour}
 				<p class="text-base text-white mt-1">{formatHour((stats.listening_clock.peak_hour.hour + utcOffset + 24) % 24)}</p>
 				<p class="text-xs text-white/50">
 					{stats.listening_clock.peak_hour.average_listening_string} avg ·
@@ -129,7 +130,7 @@
 				<Calender/>
 			</div>
 			<p class="text-sm text-white/70 mt-1">Average peak weekday</p>
-			{#if stats.listening_clock.peak_hour}
+			{#if stats.listening_weekday?.peak_day}
 				<p class="text-base text-white mt-1">{stats.listening_weekday.peak_day.weekday}</p>
 				<p class="text-xs text-white/50">
 					{stats.listening_weekday.peak_day.average_listening_string} avg ·
