@@ -1,0 +1,23 @@
+# Development overrides, which merged on top of the base file, never auto-loaded:
+# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+
+# Source is bind-mounted into the containers and served by dev servers, so
+# edits on the host take effect without rebuilding images. 
+# Profiles, ports, env and the db service are inherited from docker-compose.yaml.
+services:
+  scrobble_vault:
+    # watchfiles restarts the whole app (sync loop + API) on any .py change.
+    command: ["watchfiles", "python -m scrobble_vault.main", "scrobble_vault"]
+    volumes:
+      - ./backend/scrobble_vault:/app/scrobble_vault
+
+  front_end:
+    build:
+      context: ./front-end
+      target: dev # toolchain stage: has vite, skips the prod build
+    # Vite dev server with hot module reload. 5173 (vite's default) instead of
+    # the prod port so a prod frontend can coexist on the same machine.
+    command: ["npm", "run", "dev", "--", "--host", "--port", "${FRONTEND_DEV_PORT:-5173}"]
+    volumes:
+      - ./front-end:/app
+      - /app/node_modules # keep the image's node_modules over the host's
