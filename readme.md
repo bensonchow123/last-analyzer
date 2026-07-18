@@ -8,18 +8,52 @@ The app is envisioned to be ran in two seperate machines, to be eco-friendly.
 The scrobble vault is designed ran 24/7, on a low power usesage computer to sync scrobbles from last.fm to a local Postgres datbase.  
 It will function as a seperate restful API that can be ran independantly.  
 
-#### Scrobble vault manual install (Linux only, use WSL2 if on Windows)
-Currently the scrobble vault is completed, but the Docker automated setup is not complete.  
-To start the scrobble vault:  
-1. Clone the repository and cd into repository root
-2. Create your Python virtual environment, and activate it `python -m venv .venv`
-3. Install Docker and Docker compose
-4. Start the postgres DB and run the initialization shell script, `docker compose up -d`
-5. Install dependencies `pip install -r backend/scrobble_vault/requirements.txt`
-6. Change directory to the backend directory `cd backend`
-7. Start the Scrobble vault API `python -m scrobble_vault.main`
-
 ### Last LLM service
-Current envisioned to be OpenAI API compatabile with a fastapi wrapper to communicate with scrobble vault.  
-It will then support both local LLM models and remote LLM models.  
-Which then a frontend made with sveltekit can be used to interact with Last LLM service, to analyse the data.  
+Designed as an OpenAI compatible service with a FastAPI wrapper, communicating with scrobble vault over HTTP.  
+So it work with both local and  and remote LLM providers.  
+The SvelteKit frontend can then call Last LLM service as the frontend.
+
+## Running the stack (Docker)
+The whole stack is described in one `docker-compose.yaml`, and profiles select which role a machine runs.
+
+1. Clone the repository and cd into the repository root
+2. Copy the env template and fill it in (last.fm credentials, DB passwords): `cp .env.example .env`
+3. Start the stack: `docker compose up -d`
+
+By default `docker compose up` starts every profile listed in `COMPOSE_PROFILES` in your `.env`.  
+Use a `--profile` flag to narrow the stack to a single role:
+
+| Command | What runs |
+| --- | --- |
+| `docker compose up -d` | everything in `COMPOSE_PROFILES` |
+| `docker compose --profile scrobble_vault up -d` | Postgres + scrobble vault only |
+| `docker compose --profile frontend up -d` | frontend only, reaches the vault via `SCROBBLE_VAULT_IPV4` |
+
+Published ports bind to `127.0.0.1` by default. Set the `*_BIND_IP` variables in `.env` to a trusted interface (for example a VPN address) if another machine needs to reach a service.
+
+## Development setup
+Development uses the same compose file plus an override that bind-mounts the source and runs dev servers, so code edits apply without rebuilding images:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+```
+
+What you get:
+- Scrobble vault API on `http://localhost:8000`, the whole app restarts automatically when a `.py` file changes
+- Vite dev server on `http://localhost:5173` with hot module reload for the frontend
+- The same Postgres data volume as the normal stack
+
+To go back to the normal (production style) stack:
+
+```bash
+docker compose down && docker compose up -d
+```
+
+### Native development (no Docker for the app)
+If you prefer running the code directly, only the DB needs Docker:
+
+1. Start the database: `docker compose up -d db`
+2. Create and activate a virtual environment: `python -m venv .venv && source .venv/bin/activate`
+3. Install dependencies: `pip install -r backend/scrobble_vault/requirements.txt`
+4. Start the vault from the backend directory: `cd backend && python -m scrobble_vault.main`
+5. Start the frontend dev server: `cd front-end && npm install && npm run dev`
