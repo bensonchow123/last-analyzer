@@ -2,6 +2,8 @@
 #   docker compose up                            # every profile in COMPOSE_PROFILES (.env) — full stack
 #   docker compose --profile scrobble_vault up   # db + scrobble_vault only
 #   docker compose --profile frontend up         # front_end only (vault reached via SCROBBLE_VAULT_IPV4)
+#   docker compose --profile mcp up              # last_llm_mcp only (vault reached via SCROBBLE_VAULT_URL)
+#   docker compose --profile chat up             # last_llm_mcp + last_llm_api
 # A --profile flag overrides COMPOSE_PROFILES, narrowing the stack to that role.
 #
 # SECURITY: the services have no authentication, so published ports bind to
@@ -73,6 +75,39 @@ services:
       - SCROBBLE_VAULT_IPV4=${SCROBBLE_VAULT_IPV4}
       - SCROBBLE_VAULT_PORT=${SCROBBLE_VAULT_PORT:-8000}
       - PORT=${FRONTEND_PORT:-3000}
+
+  last_llm_mcp:
+    build:
+      context: ./backend
+      dockerfile: last_llm_service/Dockerfile
+    container_name: last_llm_mcp
+    restart: unless-stopped
+    # mcp is on whenever the llm service runs, so both profiles list it
+    profiles: ["mcp", "chat"]
+    env_file: .env
+    environment:
+      # Override .env's localhost: inside the compose network the vault is reached by
+      # service name. Set SCROBBLE_VAULT_URL_DOCKER when the vault is on another machine.
+      - SCROBBLE_VAULT_URL=${SCROBBLE_VAULT_URL_DOCKER:-http://scrobble_vault:8000}
+    ports:
+      - "${LAST_LLM_MCP_BIND_IP:-127.0.0.1}:${LAST_LLM_MCP_PORT:-8001}:${LAST_LLM_MCP_PORT:-8001}"
+    command: ["python", "-m", "last_llm_service.main", "mcp", "--transport", "http"]
+    # No depends_on: a role does not start its remote dependencies, the vault
+    # may live on another machine entirely (ADR-4)
+
+  last_llm_api:
+    build:
+      context: ./backend
+      dockerfile: last_llm_service/Dockerfile
+    container_name: last_llm_api
+    restart: unless-stopped
+    profiles: ["chat"]
+    env_file: .env
+    environment:
+      - SCROBBLE_VAULT_URL=${SCROBBLE_VAULT_URL_DOCKER:-http://scrobble_vault:8000}
+    ports:
+      - "${LAST_LLM_API_BIND_IP:-127.0.0.1}:${LAST_LLM_API_PORT:-8002}:${LAST_LLM_API_PORT:-8002}"
+    command: ["python", "-m", "last_llm_service.main", "api"]
 
 volumes:
   scrobble_vault_DB_data:
