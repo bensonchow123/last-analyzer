@@ -21,3 +21,14 @@ services:
     volumes:
       - ./front-end:/app
       - /app/node_modules # keep the image's node_modules over the host's
+
+  last_llm_mcp:
+    # watchfiles also picks up prompts/*.json edits, prompts are data not code
+    command: ["watchfiles", "python -m last_llm_service.main mcp --transport http", "last_llm_service"]
+    volumes:
+      - ./backend/last_llm_service:/app/last_llm_service
+
+  last_llm_api:
+    command: ["watchfiles", "python -m last_llm_service.main api", "last_llm_service"]
+    volumes:
+      - ./backend/last_llm_service:/app/last_llm_service
