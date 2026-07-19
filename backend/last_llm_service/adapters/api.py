@@ -1,10 +1,15 @@
+import json
+import logging
 from typing import Literal
 
 from pydantic import BaseModel
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
-from last_llm_service.adapters.openai_agent import run_agent
+from last_llm_service.adapters.openai_agent import run_agent, run_agent_events
+
+logger = logging.getLogger(__name__)
 
 api = FastAPI()
 
@@ -29,11 +34,29 @@ class ChatResponse(BaseModel):
 async def chat(request: ChatRequest) -> ChatResponse:
     """Stateless chat, the client resends its whole history each call.
 
-    Cookie stored conversations in the planned notebook UI rely on exactly this.
-    Streaming later means turning run_agent into an async generator served over SSE.
+    Non streaming, kept for simple consumers. The chat UI uses /chat/stream.
     """
     reply = await run_agent([m.model_dump() for m in request.messages])
     return ChatResponse(reply=reply)
 
-# The root path stays free, the planned UI mounts at / after these routes
+async def chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same stateless chat, streamed as SSE. One json event per data: frame."""
+    messages = [m.model_dump() for m in request.messages]
+
+    async def frames():
+        try:
+            async for event in run_agent_events(messages):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            # The 200 header is already sent, an error frame is all we can do
+            logger.exception("chat stream failed")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        frames(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
 api.add_api_route("/chat", chat, methods=["POST"])
+api.add_api_route("/chat/stream", chat_stream, methods=["POST"])
