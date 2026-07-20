@@ -3,7 +3,7 @@
 #   docker compose --profile scrobble_vault up   # db + scrobble_vault only
 #   docker compose --profile frontend up         # front_end only (vault reached via SCROBBLE_VAULT_IPV4)
 #   docker compose --profile mcp up              # last_llm_mcp only (vault reached via SCROBBLE_VAULT_URL)
-#   docker compose --profile chat up             # last_llm_mcp + last_llm_api
+#   docker compose --profile chat up             # last_llm_mcp + last_llm_api + front_end (the chat ui)
 # A --profile flag overrides COMPOSE_PROFILES, narrowing the stack to that role.
 #
 # SECURITY: the services have no authentication, so published ports bind to
@@ -64,7 +64,8 @@ services:
       context: ./front-end
     container_name: front_end
     restart: unless-stopped
-    profiles: ["frontend"]
+    # also in chat: the chat UI lives here, so the chat role brings the ui with it
+    profiles: ["frontend", "chat"]
     # Host networking so SCROBBLE_VAULT_IPV4 keeps its normal meaning — the
     # vault's address as seen from this machine (127.0.0.1 when local, another
     # host's address when remote). On a bridge network 127.0.0.1 would point at
@@ -75,6 +76,11 @@ services:
       - SCROBBLE_VAULT_IPV4=${SCROBBLE_VAULT_IPV4}
       - SCROBBLE_VAULT_PORT=${SCROBBLE_VAULT_PORT:-8000}
       - PORT=${FRONTEND_PORT:-3000}
+      # The chat proxy route reads these at runtime too. Host networking gives
+      # LAST_LLM_API_IPV4 the same meaning as SCROBBLE_VAULT_IPV4: the chat api
+      # as seen from this machine.
+      - LAST_LLM_API_IPV4=${LAST_LLM_API_IPV4:-127.0.0.1}
+      - LAST_LLM_API_PORT=${LAST_LLM_API_PORT:-8002}
 
   last_llm_mcp:
     build:
