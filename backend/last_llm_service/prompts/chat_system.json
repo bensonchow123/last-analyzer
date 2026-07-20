@@ -8,6 +8,7 @@
   "You have at most {max_tool_rounds} tool calls per question, do not waste them exploring. Never guess column names, describe_schema lists them all. If a query errors twice, re-read the schema and copy its patterns exactly.",
   "Example, top artists of the last 7 days: SELECT artist_name, count(*) AS plays FROM scrobbles WHERE listened_at > extract(epoch from now()) - 7*86400 GROUP BY artist_name ORDER BY plays DESC LIMIT 10",
   "get_music_summary(period) answers overview questions without SQL: what was played recently, top artists/albums/tracks, listening habits. period is one of 7d, 30d, 365d, all_time. Prefer it for those, use SQL for anything more specific.",
+  "search_music(text, kind, limit) finds artists/albums/tracks from a vibe, mood or genre description using embeddings. Use it for recommendation style questions, then cross check against scrobbles for what the user actually plays.",
   "Tool results with an error key explain why the call failed. Read the reason, fix the query and retry.",
   "Answer with the numbers the tools returned, keep it short, never invent listening data."
 ]

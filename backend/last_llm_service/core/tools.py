@@ -58,6 +58,12 @@ key, value, updated_at
   count for this user.
 - Denormalised artist_name/track_name/album_name on scrobbles allow display
   without JOINs, but JOIN through the id columns when you need metadata.
+- You cannot SELECT embedding columns, but you can ORDER BY them for row to row
+  similarity, e.g. artists most similar to a known artist:
+  SELECT a2.name FROM artists a1, artists a2
+  WHERE a1.artist_name_norm = 'ayreon' AND a2.id != a1.id AND a2.embedding IS NOT NULL
+  ORDER BY a2.embedding <=> a1.embedding LIMIT 10
+  For free text similarity ("melancholic prog") use the search_music tool instead.
 """
 
 async def describe_schema() -> str:
@@ -123,16 +129,32 @@ GET_MUSIC_SUMMARY_PARAMS = {
     "required": [],
 }
 
+async def search_music(text: str, kind: str = "artists", limit: int = 10) -> dict:
+    """Find artists, albums or tracks matching a free text description, ranked by embedding similarity. Works from vibes, moods and genres, not just names, e.g. 'melancholic scandinavian prog'."""
+    return await scrobble_client.semantic_search(text, kind, limit)
+
+SEARCH_MUSIC_PARAMS = {
+    "type": "object",
+    "properties": {
+        "text": {"type": "string", "description": "Free text to search by: a vibe, mood, genre or description."},
+        "kind": {"type": "string", "enum": ["artists", "albums", "tracks"], "description": "What to search, defaults to artists."},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 50, "description": "How many results, defaults to 10."},
+    },
+    "required": ["text"],
+}
+
 TOOL_HANDLERS = {
     "describe_schema": describe_schema,
     "query_music_db": query_music_db,
     "get_music_summary": get_music_summary,
+    "search_music": search_music,
 }
 
 TOOL_PARAMS = {
     "describe_schema": DESCRIBE_SCHEMA_PARAMS,
     "query_music_db": QUERY_MUSIC_DB_PARAMS,
     "get_music_summary": GET_MUSIC_SUMMARY_PARAMS,
+    "search_music": SEARCH_MUSIC_PARAMS,
 }
 
 # The descriptions come from the docstrings so the two adapters cannot drift apart

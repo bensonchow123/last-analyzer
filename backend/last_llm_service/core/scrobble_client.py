@@ -30,3 +30,7 @@ async def run_sql(sql: str) -> dict:
 async def get_music_summary() -> dict:
     """Fetch the vault's curated per period listening stats."""
     return await _request("GET", "/music-summary")
+
+async def semantic_search(text: str, kind: str, limit: int) -> dict:
+    """Rank artists, albums or tracks by embedding similarity to free text."""
+    return await _request("POST", "/semantic-search", {"text": text, "kind": kind, "limit": limit})
