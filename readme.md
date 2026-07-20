@@ -15,6 +15,9 @@ The SvelteKit frontend can then call Last LLM service as the frontend.
 The same tools are also exposed over MCP, for if your cloud LLM provider doesn't provide OpenAI compatable endpoint or if it cost too much.
 It has three run modes: `mcp` (MCP server), `api` (chat API for the frontend) and `chat` (terminal REPL for dev).
 
+The chat UI lives in the frontend at `/`: replies stream in over SSE, tool calls show as activity chips, and conversations stay in your browser (localStorage).  
+The browser never talks to the chat API directly, a frontend server route proxies it using `LAST_LLM_API_IPV4` (same meaning as `SCROBBLE_VAULT_IPV4`: the address as seen from the frontend's machine).
+
 ## Running the stack (Docker)
 The whole stack is described in one `docker-compose.yaml`, and profiles select which role a machine runs.
 
@@ -29,9 +32,9 @@ Use a `--profile` flag to narrow the stack to a single role:
 | --- | --- |
 | `docker compose up -d` | everything in `COMPOSE_PROFILES` |
 | `docker compose --profile scrobble_vault up -d` | Postgres + scrobble vault only |
-| `docker compose --profile frontend up -d` | frontend only, reaches the vault via `SCROBBLE_VAULT_IPV4` |
+| `docker compose --profile frontend up -d` | frontend only, reaches the vault via `SCROBBLE_VAULT_IPV4` and the chat api via `LAST_LLM_API_IPV4` |
 | `docker compose --profile mcp up -d` | MCP server only, reaches the vault via `SCROBBLE_VAULT_URL` |
-| `docker compose --profile chat up -d` | MCP server + chat API |
+| `docker compose --profile chat up -d` | MCP server + chat API + the frontend serving the chat UI |
 
 Published ports bind to `127.0.0.1` by default. Set the `*_BIND_IP` variables in `.env` to a trusted interface (for example a VPN address) if another machine needs to reach a service.
 
@@ -45,7 +48,7 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 What you get:
 - Scrobble vault API on `http://localhost:8000`, the whole app restarts automatically when a `.py` file changes
 - Last LLM service MCP on `http://localhost:8001/mcp` and chat API on `http://localhost:8002`, restarting on `.py` and `prompts/*.json` changes
-- Vite dev server on `http://localhost:5173` with hot module reload for the frontend
+- Vite dev server on `http://localhost:5173` with hot module reload for the frontend, chat UI at `/` and the summary at `/summary`
 - The same Postgres data volume as the normal stack
 
 To go back to the normal (production style) stack:
