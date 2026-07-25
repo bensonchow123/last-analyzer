@@ -20,6 +20,9 @@ class Env:
         self.SYNC_INTERVAL_MINUTES = int(os.getenv('SYNC_INTERVAL_MINUTES', 15))
         self.RATE_LIMIT_MS = int(os.getenv('RATE_LIMIT_MS', 200))
         self.SCROBBLE_VAULT_PORT = int(os.getenv('SCROBBLE_VAULT_PORT', 8000))
+
+        # Serve the LLM only endpoints, off unless a last LLM service uses this vault
+        self.LLM_ENDPOINTS_ENABLED = os.getenv('LLM_ENDPOINTS_ENABLED', 'false').lower() == 'true'
         
         # PostgreSQL connection (admin)
         self.POSTGRES_USER = os.getenv('POSTGRES_SUPER_USER', 'admin')
