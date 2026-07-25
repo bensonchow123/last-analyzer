@@ -50,11 +50,15 @@ services:
     env_file: .env
     environment:
       - POSTGRES_HOST=db # override .env's localhost: inside the compose network the DB is reached by service name
+      - SETTINGS_FILE=/data/settings.json # settings page edits, on a volume so they outlive the container
     ports:
       - "${SCROBBLE_VAULT_BIND_IP:-127.0.0.1}:${SCROBBLE_VAULT_PORT:-8000}:${SCROBBLE_VAULT_PORT:-8000}"
     volumes:
       # Cache the sentence-transformers model download across container recreations
       - hugging_face_cache:/root/.cache/huggingface
+      # Settings page overrides. A volume, not the image, so --force-recreate and
+      # rebuilds keep them. They win over .env, see backend/scrobble_vault/env.py
+      - vault_settings:/data
     depends_on:
       db:
         condition: service_healthy
@@ -81,6 +85,9 @@ services:
       # as seen from this machine.
       - LAST_LLM_API_IPV4=${LAST_LLM_API_IPV4:-127.0.0.1}
       - LAST_LLM_API_PORT=${LAST_LLM_API_PORT:-8002}
+      # The settings page proxies to both services with this, it never reaches
+      # the browser. Unset leaves their /settings endpoints disabled.
+      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN:-}
 
   last_llm_mcp:
     build:
@@ -95,8 +102,13 @@ services:
       # Override .env's localhost: inside the compose network the vault is reached by
       # service name. Set SCROBBLE_VAULT_URL_DOCKER when the vault is on another machine.
       - SCROBBLE_VAULT_URL=${SCROBBLE_VAULT_URL_DOCKER:-http://scrobble_vault:8000}
+      - SETTINGS_FILE=/data/settings.json
     ports:
       - "${LAST_LLM_MCP_BIND_IP:-127.0.0.1}:${LAST_LLM_MCP_PORT:-8001}:${LAST_LLM_MCP_PORT:-8001}"
+    volumes:
+      # Same volume as last_llm_api on purpose: only the api serves /settings, mcp
+      # picks an edit up off the shared file within a second (settings_store.py)
+      - llm_settings:/data
     command: ["python", "-m", "last_llm_service.main", "mcp", "--transport", "http"]
     # No depends_on: a role does not start its remote dependencies, the vault
     # may live on another machine entirely (ADR-4)
@@ -111,10 +123,15 @@ services:
     env_file: .env
     environment:
       - SCROBBLE_VAULT_URL=${SCROBBLE_VAULT_URL_DOCKER:-http://scrobble_vault:8000}
+      - SETTINGS_FILE=/data/settings.json
     ports:
       - "${LAST_LLM_API_BIND_IP:-127.0.0.1}:${LAST_LLM_API_PORT:-8002}:${LAST_LLM_API_PORT:-8002}"
+    volumes:
+      - llm_settings:/data
     command: ["python", "-m", "last_llm_service.main", "api"]
 
 volumes:
   scrobble_vault_DB_data:
   hugging_face_cache:
+  vault_settings:
+  llm_settings:
