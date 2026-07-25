@@ -1,0 +1,29 @@
+[
+  {
+    "key": "OPENAI_MODEL",
+    "label": "Model",
+    "type": "string",
+    "help": "model the chat api and terminal repl use for tool calling"
+  },
+  {
+    "key": "OPENAI_BASE_URL",
+    "label": "Base URL",
+    "type": "string",
+    "help": "any openai compatible endpoint, e.g. http://localhost:11434/v1 for ollama"
+  },
+  {
+    "key": "OPENAI_API_KEY",
+    "label": "API key",
+    "type": "string",
+    "secret": true,
+    "help": "key for the endpoint above, a local model server accepts a dummy value"
+  },
+  {
+    "key": "MAX_TOOL_ROUNDS",
+    "label": "Max tool rounds",
+    "type": "int",
+    "min": 1,
+    "max": 50,
+    "help": "cap so a confused model cannot loop forever"
+  }
+]

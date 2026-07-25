@@ -1,29 +1,38 @@
+import logging
 import os
 from pathlib import Path
 from urllib.parse import quote
 
 from dotenv import load_dotenv
 
+from scrobble_vault import settings_store
+
+logger = logging.getLogger(__name__)
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # this is project root
 load_dotenv(BASE_DIR / ".env")
 
 class Env:
-    """Environment variable manager for scrobble vault."""
+    """Environment variable manager for scrobble vault.
+
+    Two tiers. Values needed before the process can serve a request (ports, db
+    credentials, the admin token) are plain attributes read once at startup, they
+    only change by editing .env and restarting. Values the settings page can edit
+    are properties reading through settings_store, so a save applies to the next
+    request with no restart.
+    """
     def __init__(self):
-        # Last.fm configs
+        # Last.fm configs, the api key and secret are editable below
         self.LAST_FM_USERNAME = os.getenv('LAST_FM_USERNAME')
         self.LAST_FM_PASSWORD = os.getenv('LAST_FM_PASSWORD')
-        self.LAST_FM_API_KEY = os.getenv('LAST_FM_API_KEY')
-        self.LAST_FM_API_SECRET = os.getenv('LAST_FM_API_SECRET')
 
         # Sync settings
-        self.SYNC_INTERVAL_MINUTES = int(os.getenv('SYNC_INTERVAL_MINUTES', 15))
-        self.RATE_LIMIT_MS = int(os.getenv('RATE_LIMIT_MS', 200))
         self.SCROBBLE_VAULT_PORT = int(os.getenv('SCROBBLE_VAULT_PORT', 8000))
 
-        # Serve the LLM only endpoints, off unless a last LLM service uses this vault
-        self.LLM_ENDPOINTS_ENABLED = os.getenv('LLM_ENDPOINTS_ENABLED', 'false').lower() == 'true'
-        
+        # Bearer token for /settings, unset leaves the endpoints disabled.
+        # Deliberately not editable through the api, it is what guards the api.
+        self.ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN')
+
         # PostgreSQL connection (admin)
         self.POSTGRES_USER = os.getenv('POSTGRES_SUPER_USER', 'admin')
         self.POSTGRES_PASSWORD = os.getenv('POSTGRES_SUPER_USER_PASSWORD')
@@ -36,13 +45,48 @@ class Env:
         # PostgreSQL connection (read only)
         self.RO_POSTGRES_USER = os.getenv('POSTGRES_READ_ONLY_USER', 'readonly')
         self.RO_POSTGRES_PASSWORD = os.getenv('POSTGRES_READ_ONLY_USER_PASSWORD')
-    
+
+    def _get(self, key: str, default=None):
+        """Settings page override first, then the env, then the default."""
+        stored = settings_store.get(key)
+        return stored if stored is not None else os.getenv(key, default)
+
+    def _int(self, key: str, default: int) -> int:
+        """A hand mangled override falls back instead of crashing a request."""
+        try:
+            return int(self._get(key, default))
+        except (TypeError, ValueError):
+            logger.warning(f"Ignoring non numeric {key}, using {default}")
+            return default
+
+    # Editable from the settings page, see settings_spec.json
+    @property
+    def LAST_FM_API_KEY(self) -> str | None:
+        return self._get('LAST_FM_API_KEY')
+
+    @property
+    def LAST_FM_API_SECRET(self) -> str | None:
+        return self._get('LAST_FM_API_SECRET')
+
+    @property
+    def SYNC_INTERVAL_MINUTES(self) -> int:
+        return self._int('SYNC_INTERVAL_MINUTES', 15)
+
+    @property
+    def RATE_LIMIT_MS(self) -> int:
+        return self._int('RATE_LIMIT_MS', 200)
+
+    @property
+    def LLM_ENDPOINTS_ENABLED(self) -> bool:
+        # Serve the LLM only endpoints, off unless a last LLM service uses this vault
+        return str(self._get('LLM_ENDPOINTS_ENABLED', 'false')).lower() == 'true'
+
     @property
     def DATABASE_URL(self) -> str:
         # URL encode the password to handle special characters
         encoded_password = quote(self.POSTGRES_PASSWORD or '')
         return f"postgresql://{self.POSTGRES_USER}:{encoded_password}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-    
+
     @property
     def RO_DATABASE_URL(self) -> str:
         # DB URL for the read only user

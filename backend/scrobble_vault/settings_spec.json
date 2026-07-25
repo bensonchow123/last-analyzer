@@ -1,0 +1,38 @@
+[
+  {
+    "key": "SYNC_INTERVAL_MINUTES",
+    "label": "Sync interval (minutes)",
+    "type": "int",
+    "min": 1,
+    "max": 43200,
+    "help": "minutes between last.fm scrobble pulls, any value works including daily (1440) and weekly (10080)"
+  },
+  {
+    "key": "RATE_LIMIT_MS",
+    "label": "Rate limit (ms)",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "help": "gap between last.fm api calls, they allow 5 a second so 200 is the safe floor"
+  },
+  {
+    "key": "LLM_ENDPOINTS_ENABLED",
+    "label": "Serve LLM endpoints",
+    "type": "bool",
+    "help": "serve /vibed-sql-runner and /semantic-search, only needed when a last LLM service uses this vault"
+  },
+  {
+    "key": "LAST_FM_API_KEY",
+    "label": "Last.fm API key",
+    "type": "string",
+    "secret": true,
+    "help": "api key for the account being synced"
+  },
+  {
+    "key": "LAST_FM_API_SECRET",
+    "label": "Last.fm API secret",
+    "type": "string",
+    "secret": true,
+    "help": "api secret that pairs with the key above"
+  }
+]
