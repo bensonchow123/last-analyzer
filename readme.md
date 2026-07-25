@@ -5,7 +5,7 @@ Consisting of two parts, `scrobble_vault` and `last_llm_service` and a frontend 
 ### Scrobble vault
 The scrobble vault is designed ran 24/7, on a low power usesage computer to sync scrobbles from last.fm to a local Postgres datbase.  
 It will function as a seperate restful API that can be ran independantly.  
-The vault's `/vibed-sql-runner` and `/semantic-search` endpoints used by `last_llm_services` starts by default, can be disabled by setting `LLM_ENDPOINTS_DISABLED='false'` in the `.env` file if you only need the vault.
+The vault's `/vibed-sql-runner` and `/semantic-search` endpoints used by `last_llm_services` starts by default, can be disabled by setting `LLM_ENDPOINTS_ENABLED='false'` in the `.env` file if you only need the vault, or from the settings page.
 
 ### Last LLM service
 Designed as an OpenAI API compatible service with a FastAPI wrapper, communicating with scrobble vault over HTTP.  
@@ -36,6 +36,25 @@ Use a `--profile` flag to narrow the stack to a single role:
 
 Published ports bind to `127.0.0.1` by default. Set the `*_BIND_IP` variables in `.env` to a trusted interface (for example a VPN address) if another machine needs to reach a service.
 
+## Configuration
+Config splits in two, by when the value is used rather than how important it is.
+
+**Read once at startup, lives in `.env`.** Ports, `*_BIND_IP`, database credentials, service addresses and `COMPOSE_PROFILES`. A service needs these before it can answer anything, so changing one means editing that machine's `.env` and running `docker compose up -d --force-recreate`.
+
+**Read per request, editable from the frontend.** The LLM model, base URL and API key, max tool rounds, sync interval, rate limit, the Last.fm API key and secret, and the LLM endpoint toggle. These live at `/settings` in the frontend and apply to the next request with no restart.
+
+Each service serves its own `GET`/`PATCH /settings`, because a service is the only thing that knows its own config and it may be the only thing running on that machine. The frontend fans out to both and proxies server side, so the addresses and the token never reach the browser. Set `ADMIN_API_TOKEN` in `.env` on every machine to turn the endpoints on, they stay disabled without it.
+
+What you save is written to a json file on a docker volume (`vault_settings`, `llm_settings`), so it survives restarts, `--force-recreate` and rebuilds. The lookup order is:
+
+```
+settings page override  >  .env  >  built in default
+```
+
+so `.env` is the starting point for a value you have not changed yet, not the last word. The settings page labels each field with where its current value came from and offers a "use .env" button to drop an override.
+
+Two notes. Secrets go out masked, the page only ever shows the last few characters, and leaving a secret box blank means leave it alone rather than clear it. And the mcp container reads the same file as the chat api, so a change made in the page reaches your MCP tools within a second without restarting either.
+
 ## Development setup
 Development uses the same compose file plus an override that bind-mounts the source and runs dev servers, so code edits apply without rebuilding images:
 
@@ -46,7 +65,7 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 What you get:
 - Scrobble vault API on `http://localhost:8000`, the whole app restarts automatically when a `.py` file changes
 - Last LLM service MCP on `http://localhost:8001/mcp` and chat API on `http://localhost:8002`, restarting on `.py` and `prompts/*.json` changes
-- Vite dev server on `http://localhost:5173` with hot module reload for the frontend, chat UI at `/` and the summary at `/summary`
+- Vite dev server on `http://localhost:5173` with hot module reload for the frontend, chat UI at `/`, the summary at `/summary` and settings at `/settings`
 - The same Postgres data volume as the normal stack
 
 To go back to the normal (production style) stack:
