@@ -1,1 +1,9 @@
 .env
+
+# settings page overrides when running natively, these hold secrets.
+# Under docker they live on a volume instead, see SETTINGS_FILE.
+# Leading slash matters: unanchored this also swallows src/routes/settings/
+/settings/
+
+# scratch last.fm dump, not source
+response.json
