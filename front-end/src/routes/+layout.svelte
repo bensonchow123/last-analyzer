@@ -8,7 +8,8 @@
 	// top panel tabs, the current path decides which one is lit
 	const tabs = [
 		{ href: '/', label: 'Chat' },
-		{ href: '/summary', label: 'Summary' }
+		{ href: '/summary', label: 'Summary' },
+		{ href: '/settings', label: 'Settings' }
 	];
 </script>
 
