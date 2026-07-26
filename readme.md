@@ -1,65 +1,64 @@
 # Last-analyser
-An music analyser that analysis your music listerning data locally, either through Model Context protocal (MCP) or running the agent loop locally with your local or cloud based LLM model.  
+An music analyser is designed to analysis your music listerning history locally, even with no internet access, either through Model Context protocal (MCP) or running the agent loop locally with your local or cloud based LLM model.  
 Consisting of two parts, `scrobble_vault` and `last_llm_service` and a frontend to interact with them.
 
 ### Scrobble vault
-The scrobble vault is designed ran 24/7, on a low power usesage computer to sync scrobbles from last.fm to a local Postgres datbase.  
+The scrobble vault is designed ran 24/7, on a low power usage computer to sync scrobbles from last.fm to a local Postgres datbase.  
 It will function as a seperate restful API that can be ran independantly.  
-The vault's `/vibed-sql-runner` and `/semantic-search` endpoints used by `last_llm_services` starts by default, can be disabled by setting `LLM_ENDPOINTS_ENABLED='false'` in the `.env` file if you only need the vault, or from the settings page.
+The vault's `/vibed-sql-runner` and `/semantic-search` endpoints used by `last_llm_services` starts by default, turn them off on the settings page if you only need the vault.  
+Setting `LLM_ENDPOINTS_ENABLED='false'` in `.env` does the same thing, but you have to recreate the containers after so they pick it up.
 
 ### Last LLM service
 Designed as an OpenAI API compatible service with a FastAPI wrapper, communicating with scrobble vault over HTTP.  
 So it work with both local and  and remote LLM providers.  
-The same tools are also exposed over MCP, for if your cloud LLM provider doesn't provide OpenAI compatable API or if it cost too much.
+The same tools are also exposed over MCP, for if you don't want to use the frontend in this app.  
 It has three run modes: `mcp` (MCP server), `api` (chat API for the frontend) and `chat` (terminal REPL for dev).
 
 The chat UI lives in the frontend at `/`: replies stream in over SSE, tool calls show as activity chips, and conversations stay in your browser (localStorage).  
 The browser never talks to the chat API directly, a frontend server route proxies it using `LAST_LLM_API_IPV4` (same meaning as `SCROBBLE_VAULT_IPV4`: the address as seen from the frontend's machine).
 
-## Running the stack (Docker)
-The whole stack is described in one `docker-compose.yaml`, and profiles select which role a machine runs.
+## Running it (single machine setup)
+1. Clone the repository and cd into it
+2. `docker compose --profile full up -d`
+3. Open `http://localhost:3000`, go to **Settings**, put in your Last.fm username and [API key](https://www.last.fm/api/account/create)
 
-1. Clone the repository and cd into the repository root
-2. Copy the env template and fill it in (last.fm credentials, DB passwords): `cp .env.example .env`
-3. Start the stack: `docker compose up -d`
+That is it, no files to edit. It starts syncing your scrobbles straight away.  
+Only if you want the chat UI, add a model and API key on the Last LLM service card too. The MCP tools work without them.
 
-By default `docker compose up` starts every profile listed in `COMPOSE_PROFILES` in your `.env`.  
-Use a `--profile` flag to narrow the stack to a single role:
+## Settings
+Everything you would normally change lives on the settings page: your Last.fm details, how often it syncs, and which model the chat uses.  
+Changes apply straight away, nothing restarts, and they are kept between restarts. What you save there wins over anything in `.env`.
+
+On one machine you never need a `.env` at all, and `.env.example` is there for the one case that does: splitting the stack across two machines, because nothing can guess the other machine's address. Changing ports or the database passwords goes there too, but most people will not.
+
+## Running only part of it
+Profiles pick which parts start:
 
 | Command | What runs |
 | --- | --- |
-| `docker compose up -d` | everything in `COMPOSE_PROFILES` |
-| `docker compose --profile scrobble_vault up -d` | Postgres + scrobble vault only |
-| `docker compose --profile frontend up -d` | frontend only, reaches the vault via `SCROBBLE_VAULT_IPV4` and the chat api via `LAST_LLM_API_IPV4` |
-| `docker compose --profile mcp up -d` | MCP server only, reaches the vault via `SCROBBLE_VAULT_URL` |
-| `docker compose --profile chat up -d` | MCP server + chat API + the frontend serving the chat UI |
+| `docker compose --profile full up -d` | everything |
+| `docker compose --profile scrobble_vault up -d` | database + scrobble vault |
+| `docker compose --profile frontend up -d` | frontend only |
+| `docker compose --profile mcp up -d` | MCP server only |
+| `docker compose --profile chat up -d` | MCP server + chat API + the chat UI |
 
-Published ports bind to `127.0.0.1` by default. Set the `*_BIND_IP` variables in `.env` to a trusted interface (for example a VPN address) if another machine needs to reach a service.
+## Across two machines (to save electricity)
+This is what `.env` is for, and the only thing it is for. Everything binds to `127.0.0.1` by default so only that machine can reach it, and no default can guess where your other machine lives. Copy `.env.example` to `.env` on each machine and fill in its half.
 
-## Configuration
-Config splits in two, by when the value is used rather than how important it is.
+Say the vault runs on a server and the UI on your laptop, over a VPN:
 
-**Read once at startup, lives in `.env`.** Ports, `*_BIND_IP`, database credentials, service addresses and `COMPOSE_PROFILES`. A service needs these before it can answer anything, so changing one means editing that machine's `.env` and running `docker compose up -d --force-recreate`.
+- on the server, `SCROBBLE_VAULT_BIND_IP` set to its VPN address so the laptop can reach it
+- on the laptop, `SCROBBLE_VAULT_IPV4` set to that same address
+- the same `ADMIN_API_TOKEN` on both, so the settings page is not left open on the VPN
+- `COMPOSE_PROFILES` on each machine listing what that machine runs
 
-**Read per request, editable from the frontend.** The LLM model, base URL and API key, max tool rounds, sync interval, rate limit, the Last.fm API key and secret, and the LLM endpoint toggle. These live at `/settings` in the frontend and apply to the next request with no restart.
-
-Each service serves its own `GET`/`PATCH /settings`, because a service is the only thing that knows its own config and it may be the only thing running on that machine. The frontend fans out to both and proxies server side, so the addresses and the token never reach the browser. Set `ADMIN_API_TOKEN` in `.env` on every machine to turn the endpoints on, they stay disabled without it.
-
-What you save is written to a json file on a docker volume (`vault_settings`, `llm_settings`), so it survives restarts, `--force-recreate` and rebuilds. The lookup order is:
-
-```
-settings page override  >  .env  >  built in default
-```
-
-so `.env` is the starting point for a value you have not changed yet, not the last word. The settings page labels each field with where its current value came from and offers a "use .env" button to drop an override.
-
-Two notes. Secrets go out masked, the page only ever shows the last few characters, and leaving a secret box blank means leave it alone rather than clear it. And the mcp container reads the same file as the chat api, so a change made in the page reaches your MCP tools within a second without restarting either.
+After editing `.env`, run `docker compose up -d --force-recreate` so the containers pick it up.
 
 ## Development setup
 Development uses the same compose file plus an override that bind-mounts the source and runs dev servers, so code edits apply without rebuilding images:
 
 ```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile full up -d
 ```
 
 What you get:
@@ -71,11 +70,12 @@ What you get:
 To go back to the normal (production style) stack:
 
 ```bash
-docker compose down && docker compose up -d
+docker compose down && docker compose --profile full up -d
 ```
 
 ### Native development (no Docker for the app)
-If you prefer running the code directly, only the DB needs Docker:
+If you prefer running the code directly, only the DB needs Docker.  
+This is the one path that does need a `.env`: outside compose the code defaults to reaching the database at `db`, which only resolves inside the compose network. Copy `.env.example` to `.env` and set `POSTGRES_HOST='localhost'` plus the two database passwords to match your db container.
 
 1. Start the database: `docker compose up -d db`
 2. Create and activate a virtual environment: `python -m venv .venv && source .venv/bin/activate`
