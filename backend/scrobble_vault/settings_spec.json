@@ -1,5 +1,20 @@
 [
   {
+    "key": "LAST_FM_USERNAME",
+    "label": "Last.fm username",
+    "type": "string",
+    "required": true,
+    "help": "whose scrobbles to sync. not a login, the read api serves public data"
+  },
+  {
+    "key": "LAST_FM_API_KEY",
+    "label": "Last.fm API key",
+    "type": "string",
+    "secret": true,
+    "required": true,
+    "help": "get one at last.fm/api/account/create, it identifies the app not you"
+  },
+  {
     "key": "SYNC_INTERVAL_MINUTES",
     "label": "Sync interval (minutes)",
     "type": "int",
@@ -20,19 +35,5 @@
     "label": "Serve LLM endpoints",
     "type": "bool",
     "help": "serve /vibed-sql-runner and /semantic-search, only needed when a last LLM service uses this vault"
-  },
-  {
-    "key": "LAST_FM_API_KEY",
-    "label": "Last.fm API key",
-    "type": "string",
-    "secret": true,
-    "help": "api key for the account being synced"
-  },
-  {
-    "key": "LAST_FM_API_SECRET",
-    "label": "Last.fm API secret",
-    "type": "string",
-    "secret": true,
-    "help": "api secret that pairs with the key above"
   }
 ]

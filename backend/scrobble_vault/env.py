@@ -22,9 +22,9 @@ class Env:
     request with no restart.
     """
     def __init__(self):
-        # Last.fm configs, the api key and secret are editable below
-        self.LAST_FM_USERNAME = os.getenv('LAST_FM_USERNAME')
-        self.LAST_FM_PASSWORD = os.getenv('LAST_FM_PASSWORD')
+        # Last.fm username and api key are editable, see the properties below.
+        # There is no password or api secret here: those are only needed for
+        # last.fm's authenticated write methods, and this vault only ever reads.
 
         # Sync settings
         self.SCROBBLE_VAULT_PORT = int(os.getenv('SCROBBLE_VAULT_PORT', 8000))
@@ -61,12 +61,12 @@ class Env:
 
     # Editable from the settings page, see settings_spec.json
     @property
-    def LAST_FM_API_KEY(self) -> str | None:
-        return self._get('LAST_FM_API_KEY')
+    def LAST_FM_USERNAME(self) -> str | None:
+        return self._get('LAST_FM_USERNAME')
 
     @property
-    def LAST_FM_API_SECRET(self) -> str | None:
-        return self._get('LAST_FM_API_SECRET')
+    def LAST_FM_API_KEY(self) -> str | None:
+        return self._get('LAST_FM_API_KEY')
 
     @property
     def SYNC_INTERVAL_MINUTES(self) -> int:
