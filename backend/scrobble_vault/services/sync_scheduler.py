@@ -3,7 +3,7 @@ import logging
 import time
 
 from scrobble_vault.env import env
-from scrobble_vault.services.sync_scrobbles import sync_scrobble_vault
+from scrobble_vault.services.sync_scrobbles import init_schema, sync_scrobble_vault
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,10 @@ async def run_sync_loop() -> None:
     weekly is a fair thing to want. Re-reading the interval each tick is also
     what lets the settings page change it without a restart.
     """
+    # Tables first: the schema does not depend on last.fm, and without it
+    # /music-summary would error on a missing table instead of coming back empty
+    await init_schema()
+
     await _wait_until_configured()
     await _sync_once()
     last_run = time.monotonic()

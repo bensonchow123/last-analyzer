@@ -20,16 +20,23 @@ from scrobble_vault.services.sync_new_tracks import sync_new_tracks
 logger = logging.getLogger(__name__)
 
 
-async def sync_scrobble_vault():
-    """Fetch new scrobbles from last.fm and update the database."""
-    # Initialize the database schema, if it is not there yet
-    # Order matters: artists first, then albums, then tracks, then scrobbles (FK dependencies)
+async def init_schema():
+    """Create the tables if they are not there yet.
+
+    Order matters: artists first, then albums, then tracks, then scrobbles (FK dependencies).
+    Safe to call again, every statement is CREATE TABLE IF NOT EXISTS.
+    """
     await init_sync_table()
     await init_artists_table()
     await init_albums_table()
     await init_tracks_table()
     await init_scrobbles_table()
-    
+
+
+async def sync_scrobble_vault():
+    """Fetch new scrobbles from last.fm and update the database."""
+    await init_schema()
+
     logger.info("Starting scrobble sync...")
     
     last_sync_info = await get_last_synced_scrobble()
