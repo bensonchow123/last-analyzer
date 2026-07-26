@@ -4,7 +4,7 @@ import aiohttp
 
 from scrobble_vault.env import env
 from scrobble_vault.db.artist import artist_exists, insert_artist
-from scrobble_vault.services.last_fm import fetch_artist_info
+from scrobble_vault.services.last_fm import TIMEOUT, fetch_artist_info
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ async def sync_new_artists(scrobbles: list):
 
     logger.info(f"Fetching info for {len(new_artists)} new artists from Last.fm")
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
         for artist_name_norm, artist_payload in new_artists.items():
             artist_name = artist_payload.get('name') or artist_name_norm
             mbid = artist_payload.get('mbid')

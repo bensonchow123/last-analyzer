@@ -4,7 +4,7 @@ import aiohttp
 
 from scrobble_vault.env import env
 from scrobble_vault.db.track import track_exists, insert_track
-from scrobble_vault.services.last_fm import fetch_track_info
+from scrobble_vault.services.last_fm import TIMEOUT, fetch_track_info
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ async def sync_new_tracks(scrobbles: list):
 
     # Fetch and store track info for each new track
     # Using a single ClientSession for all requests is more efficient
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
         for (artist_name, track_name), mbid in new_tracks.items():
             track_info = await fetch_track_info(
                 session,

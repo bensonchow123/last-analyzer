@@ -4,7 +4,7 @@ import aiohttp
 
 from scrobble_vault.env import env
 from scrobble_vault.db.album import album_exists, insert_album
-from scrobble_vault.services.last_fm import fetch_album_info
+from scrobble_vault.services.last_fm import TIMEOUT, fetch_album_info
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ async def sync_new_albums(scrobbles: list):
 
     # Fetch and store album info for each new album
     # Using a single ClientSession for all requests is more efficient
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
         for (artist_name, album_name), mbid in new_albums.items():
             album_info = await fetch_album_info(
                 session,

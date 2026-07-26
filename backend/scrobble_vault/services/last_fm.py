@@ -10,6 +10,11 @@ logger = logging.getLogger(__name__)
 
 LAST_FM_API_URL = "http://ws.audioscrobbler.com/2.0/"
 
+# aiohttp defaults to a 5 minute total timeout, so losing the network mid request
+# leaves the sync sitting silent for minutes before it errors. Every session in
+# this package uses this instead.
+TIMEOUT = aiohttp.ClientTimeout(total=30)
+
 # Global rate limiter for all Last.fm API calls.
 # Last.fm only allows 5 requests per second, so 200ms between requests is recommended.
 _rate_limit_lock = asyncio.Lock()
@@ -41,7 +46,7 @@ async def fetch_last_fm_data(
     """
     all_tracks = []
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
         page = 1
         while True:
             params = {
