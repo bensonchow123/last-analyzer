@@ -25,6 +25,12 @@ async def run_agent_events(messages: list[dict]) -> AsyncIterator[dict]:
     {type: tool_result, name}, and a terminal {type: done}.
     The caller's message list is not mutated, tool call rounds stay internal.
     """
+    # Not required config: the mcp path can be used outside of last analyser. 
+    # Only this path does, so this is where it gets asked for.
+    if not (env.OPENAI_API_KEY and env.OPENAI_MODEL):
+        yield {"type": "error", "message": "No model set. Add a model and api key to the Last LLM service in Settings. The MCP tools do not need them."}
+        return
+
     client = AsyncOpenAI(api_key=env.OPENAI_API_KEY, base_url=env.OPENAI_BASE_URL)
     system_prompt = PROMPTS["chat_system"].replace("{max_tool_rounds}", str(env.MAX_TOOL_ROUNDS))
     messages = [{"role": "system", "content": system_prompt}, *messages]
@@ -86,4 +92,6 @@ async def run_agent(messages: list[dict]) -> str:
             parts.append(event["text"])
         elif event["type"] == "tool_call":
             parts.clear()  # text before a tool round is narration, not the reply
+        elif event["type"] == "error":
+            return event["message"]  # non streaming callers would see nothing otherwise
     return "".join(parts)

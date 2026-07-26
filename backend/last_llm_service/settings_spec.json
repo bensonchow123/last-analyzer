@@ -3,7 +3,7 @@
     "key": "OPENAI_MODEL",
     "label": "Model",
     "type": "string",
-    "help": "model the chat api and terminal repl use for tool calling"
+    "help": "only for the chat ui, require model to be able to do tool calling."
   },
   {
     "key": "OPENAI_BASE_URL",
