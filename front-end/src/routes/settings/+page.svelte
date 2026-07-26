@@ -73,6 +73,22 @@
 
 	// null drops the override so the value falls back to .env again
 	const revert = (panel: ServicePanel, key: string) => patch(panel, { [key]: null });
+
+	// Anything a reachable service says is still unset, so a fresh install gets
+	// told what to fill in rather than silently doing nothing
+	const setupNeeded = $derived(
+		panels.filter((panel) => (panel.settings?.missing?.length ?? 0) > 0)
+	);
+
+	// A reachable service with no admin token. Fine on localhost, not once a
+	// *_BIND_IP points somewhere else, so say so rather than staying quiet.
+	const unprotected = $derived(
+		panels.filter((panel) => panel.settings && !panel.settings.auth_required)
+	);
+
+	function labelFor(panel: ServicePanel, key: string): string {
+		return panel.settings?.fields.find((field) => field.key === key)?.label ?? key;
+	}
 </script>
 
 <svelte:head><title>Settings</title></svelte:head>
@@ -80,11 +96,43 @@
 <div class="mx-auto max-w-3xl px-4 py-6">
 	<h1 class="text-white text-xl">Settings</h1>
 	<p class="mt-1 text-sm text-white/50">
-		Each service stores its own settings and applies them on the next request, no restart. What you
-		save here wins over <code class="text-white/70">.env</code>, which only seeds values you have
-		never changed. Ports, addresses and database credentials are not here, they are read once at
-		startup so they stay in <code class="text-white/70">.env</code>.
+		Changes apply straight away, nothing needs restarting.
 	</p>
+	<p class="mt-1 text-xs text-white/30">
+		These are stored by each service and win over anything in
+		<code class="text-white/50">.env</code>. Ports, addresses and database passwords are not here,
+		they are read once at startup, so those stay in <code class="text-white/50">.env</code>.
+	</p>
+
+	{#if setupNeeded.length}
+		<div class="mt-4 rounded-lg border border-violet-500 bg-violet-500/10 p-4">
+			<h2 class="text-white">Finish setting up</h2>
+			<p class="mt-1 text-sm text-white/70">
+				Nothing will sync or answer until these are filled in below.
+			</p>
+			<ul class="mt-2 space-y-1 text-sm text-white/50">
+				{#each setupNeeded as panel (panel.id)}
+					<li>
+						<span class="text-white/70">{panel.name}:</span>
+						{panel.settings?.missing.map((key) => labelFor(panel, key)).join(', ')}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
+	{#if unprotected.length}
+		<div class="mt-4 rounded-lg border border-white/10 bg-black/30 p-3">
+			<p class="text-sm text-white/50">
+				No admin token set on {unprotected.map((panel) => panel.name).join(' and ')}, so anyone who
+				can reach {unprotected.length > 1 ? 'them' : 'it'} can change these settings. Fine while everything
+				stays on <code class="text-white/70">127.0.0.1</code>. Set
+				<code class="text-white/70">ADMIN_API_TOKEN</code> in
+				<code class="text-white/70">.env</code> before pointing any
+				<code class="text-white/70">*_BIND_IP</code> at a VPN address.
+			</p>
+		</div>
+	{/if}
 
 	{#each panels as panel (panel.id)}
 		<section class="mt-6 rounded-lg border border-violet-500/50 bg-[#131311] p-4">
@@ -105,7 +153,10 @@
 					<div class="mt-4 border-t border-white/10 pt-4">
 						<div class="flex items-center gap-2">
 							<label class="text-sm text-white/70" for="{panel.id}-{field.key}">{field.label}</label>
-							{#if source === 'settings'}
+							{#if panel.settings.missing.includes(field.key)}
+								<!-- unset, so there is no source worth naming -->
+								<span class="rounded bg-violet-500 px-1.5 py-0.5 text-[11px] text-white">needed</span>
+							{:else if source === 'settings'}
 								<span class="rounded bg-violet-500/20 px-1.5 py-0.5 text-[11px] text-violet-400">
 									saved here
 								</span>

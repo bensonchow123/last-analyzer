@@ -9,6 +9,7 @@ export type SettingField = {
 	label: string;
 	type?: SettingType;
 	secret?: boolean;
+	required?: boolean; // nothing works until this one is filled in
 	help?: string;
 	min?: number;
 	max?: number;
@@ -27,6 +28,8 @@ export type ServiceSettings = {
 	fields: SettingField[];
 	values: Record<string, SettingValue>;
 	sources: Record<string, SettingSource>;
+	missing: string[]; // required keys still unset, so a fresh install can be led through setup
+	auth_required: boolean; // false when no ADMIN_API_TOKEN is set on that service
 };
 
 export type ServiceId = 'vault' | 'llm';
