@@ -47,13 +47,22 @@ def _coerce(field: dict, value) -> str:
 def _payload() -> dict:
     """The spec, the effective values, and where each one is currently coming from."""
     overrides = settings_store.all_settings()
-    values, sources = {}, {}
+    values, sources, missing = {}, {}, []
     for field in SPEC:
         key = field["key"]
         current = getattr(env, key)
         values[key] = _mask(current) if field.get("secret") else current
         sources[key] = "settings" if key in overrides else "env"
-    return {"service": SERVICE, "fields": SPEC, "values": values, "sources": sources}
+        if field.get("required") and not current:
+            missing.append(key)
+    return {
+        "service": SERVICE,
+        "fields": SPEC,
+        "values": values,
+        "sources": sources,
+        "missing": missing,  # required fields still unset, drives the setup prompt
+        "auth_required": bool(env.ADMIN_API_TOKEN),
+    }
 
 async def get_settings():
     """The editable settings for this service, secrets masked."""
