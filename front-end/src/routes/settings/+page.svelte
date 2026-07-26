@@ -99,9 +99,8 @@
 		Changes apply straight away, nothing needs restarting.
 	</p>
 	<p class="mt-1 text-xs text-white/30">
-		These are stored by each service and win over anything in
-		<code class="text-white/50">.env</code>. Ports, addresses and database passwords are not here,
-		they are read once at startup, so those stay in <code class="text-white/50">.env</code>.
+		Ports, addresses and database passwords are not here. Those are read once when a service
+		starts, so they only change in a config file, which a single machine setup never needs.
 	</p>
 
 	{#if setupNeeded.length}
@@ -165,11 +164,13 @@
 									onclick={() => revert(panel, field.key)}
 									disabled={busy[panel.id]}
 								>
-									use .env
+									reset
 								</button>
 							{:else}
+								<!-- could be a config file or the built in default, and a fresh
+								     install has neither, so do not name one -->
 								<span class="rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-white/30">
-									from .env
+									default
 								</span>
 							{/if}
 						</div>
