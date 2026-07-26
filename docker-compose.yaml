@@ -1,10 +1,15 @@
 # Profiles select which part of the stack runs on a given machine:
-#   docker compose up                            # every profile in COMPOSE_PROFILES (.env) — full stack
+#   docker compose --profile full up             # everything, the single machine install
 #   docker compose --profile scrobble_vault up   # db + scrobble_vault only
 #   docker compose --profile frontend up         # front_end only (vault reached via SCROBBLE_VAULT_IPV4)
 #   docker compose --profile mcp up              # last_llm_mcp only (vault reached via SCROBBLE_VAULT_URL)
 #   docker compose --profile chat up             # last_llm_mcp + last_llm_api + front_end (the chat ui)
 # A --profile flag overrides COMPOSE_PROFILES, narrowing the stack to that role.
+#
+# Every service lists a profile, so a bare `docker compose up` starts NOTHING unless
+# COMPOSE_PROFILES is set. Compose reads that variable before it parses this file, so
+# unlike everything else here it cannot be given a default. That is why the full
+# install is a --profile flag rather than a bare up.
 #
 # SECURITY: the services have no authentication, so published ports bind to
 # 127.0.0.1 by default. To reach a service from another machine, set the
@@ -15,15 +20,19 @@ services:
     image: pgvector/pgvector:pg18-trixie
     container_name: scrobble_vault_DB
     restart: always
-    profiles: ["scrobble_vault"]
+    profiles: ["full", "scrobble_vault"]
+    # Defaults so a fresh clone starts with no .env at all. The DB port binds to
+    # 127.0.0.1 and only scrobble_vault reaches it over the compose network, so
+    # the default passwords are not exposed. Override them in .env before setting
+    # POSTGRES_BIND_IP to anything else.
     environment: # env for DB initalization
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_SUPER_USER} # the container needs this specific variable for the superuser
-      - POSTGRES_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD} # the container needs this specific variable for the superuser
-      - POSTGRES_SUPER_USER=${POSTGRES_SUPER_USER}
-      - POSTGRES_SUPER_USER_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD}
-      - POSTGRES_READ_ONLY_USER=${POSTGRES_READ_ONLY_USER}
-      - POSTGRES_READ_ONLY_USER_PASSWORD=${POSTGRES_READ_ONLY_USER_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-scrobble_vault}
+      - POSTGRES_USER=${POSTGRES_SUPER_USER:-admin} # the container needs this specific variable for the superuser
+      - POSTGRES_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD:-scrobble_vault_admin} # the container needs this specific variable for the superuser
+      - POSTGRES_SUPER_USER=${POSTGRES_SUPER_USER:-admin}
+      - POSTGRES_SUPER_USER_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD:-scrobble_vault_admin}
+      - POSTGRES_READ_ONLY_USER=${POSTGRES_READ_ONLY_USER:-readonly}
+      - POSTGRES_READ_ONLY_USER_PASSWORD=${POSTGRES_READ_ONLY_USER_PASSWORD:-scrobble_vault_readonly}
     ports:
       # Host-side access for debugging with psql; scrobble_vault reaches the DB
       # over the compose network, so this mapping is not needed for the app.
@@ -35,7 +44,7 @@ services:
       - ./backend/scrobble_vault/init_read_only_user.sh:/docker-entrypoint-initdb.d/init_read_only_user.sh:ro
     healthcheck:
       # Without this scrobble_vault crash-loops racing Postgres startup.
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPER_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPER_USER:-admin} -d ${POSTGRES_DB:-scrobble_vault}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -46,11 +55,19 @@ services:
       dockerfile: scrobble_vault/Dockerfile
     container_name: scrobble_vault
     restart: unless-stopped
-    profiles: ["scrobble_vault"]
-    env_file: .env
+    profiles: ["full", "scrobble_vault"]
+    env_file:
+      - path: .env
+        required: false # a fresh clone has no .env, everything below has a default
     environment:
       - POSTGRES_HOST=db # override .env's localhost: inside the compose network the DB is reached by service name
       - SETTINGS_FILE=/data/settings.json # settings page edits, on a volume so they outlive the container
+      # Must match the db service's defaults above, or the vault cannot connect
+      - POSTGRES_DB=${POSTGRES_DB:-scrobble_vault}
+      - POSTGRES_SUPER_USER=${POSTGRES_SUPER_USER:-admin}
+      - POSTGRES_SUPER_USER_PASSWORD=${POSTGRES_SUPER_USER_PASSWORD:-scrobble_vault_admin}
+      - POSTGRES_READ_ONLY_USER=${POSTGRES_READ_ONLY_USER:-readonly}
+      - POSTGRES_READ_ONLY_USER_PASSWORD=${POSTGRES_READ_ONLY_USER_PASSWORD:-scrobble_vault_readonly}
     ports:
       - "${SCROBBLE_VAULT_BIND_IP:-127.0.0.1}:${SCROBBLE_VAULT_PORT:-8000}:${SCROBBLE_VAULT_PORT:-8000}"
     volumes:
@@ -69,7 +86,7 @@ services:
     container_name: front_end
     restart: unless-stopped
     # also in chat: the chat UI lives here, so the chat role brings the ui with it
-    profiles: ["frontend", "chat"]
+    profiles: ["full", "frontend", "chat"]
     # Host networking so SCROBBLE_VAULT_IPV4 keeps its normal meaning — the
     # vault's address as seen from this machine (127.0.0.1 when local, another
     # host's address when remote). On a bridge network 127.0.0.1 would point at
@@ -77,7 +94,7 @@ services:
     network_mode: host
     environment:
       # The summary page's server-side load reads these at runtime ($env/dynamic).
-      - SCROBBLE_VAULT_IPV4=${SCROBBLE_VAULT_IPV4}
+      - SCROBBLE_VAULT_IPV4=${SCROBBLE_VAULT_IPV4:-127.0.0.1}
       - SCROBBLE_VAULT_PORT=${SCROBBLE_VAULT_PORT:-8000}
       - PORT=${FRONTEND_PORT:-3000}
       # The chat proxy route reads these at runtime too. Host networking gives
@@ -86,7 +103,8 @@ services:
       - LAST_LLM_API_IPV4=${LAST_LLM_API_IPV4:-127.0.0.1}
       - LAST_LLM_API_PORT=${LAST_LLM_API_PORT:-8002}
       # The settings page proxies to both services with this, it never reaches
-      # the browser. Unset leaves their /settings endpoints disabled.
+      # the browser. Unset is fine on a default install where everything binds to
+      # 127.0.0.1, set one before pointing any *_BIND_IP at a VPN address.
       - ADMIN_API_TOKEN=${ADMIN_API_TOKEN:-}
 
   last_llm_mcp:
@@ -96,8 +114,10 @@ services:
     container_name: last_llm_mcp
     restart: unless-stopped
     # mcp is on whenever the llm service runs, so both profiles list it
-    profiles: ["mcp", "chat"]
-    env_file: .env
+    profiles: ["full", "mcp", "chat"]
+    env_file:
+      - path: .env
+        required: false
     environment:
       # Override .env's localhost: inside the compose network the vault is reached by
       # service name. Set SCROBBLE_VAULT_URL_DOCKER when the vault is on another machine.
@@ -119,8 +139,10 @@ services:
       dockerfile: last_llm_service/Dockerfile
     container_name: last_llm_api
     restart: unless-stopped
-    profiles: ["chat"]
-    env_file: .env
+    profiles: ["full", "chat"]
+    env_file:
+      - path: .env
+        required: false
     environment:
       - SCROBBLE_VAULT_URL=${SCROBBLE_VAULT_URL_DOCKER:-http://scrobble_vault:8000}
       - SETTINGS_FILE=/data/settings.json

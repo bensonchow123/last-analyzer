@@ -1,5 +1,5 @@
 # Development overrides, which merged on top of the base file, never auto-loaded:
-# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile full up
 
 # Source is bind-mounted into the containers and served by dev servers, so
 # edits on the host take effect without rebuilding images. 
