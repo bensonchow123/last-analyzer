@@ -78,8 +78,10 @@ class Env:
 
     @property
     def LLM_ENDPOINTS_ENABLED(self) -> bool:
-        # Serve the LLM only endpoints, off unless a last LLM service uses this vault
-        return str(self._get('LLM_ENDPOINTS_ENABLED', 'false')).lower() == 'true'
+        # On by default: a fresh install has no .env, and off would mean the mcp and
+        # chat paths 404 out of the box. Turn it off on the settings page when this
+        # vault runs alone.
+        return str(self._get('LLM_ENDPOINTS_ENABLED', 'true')).lower() == 'true'
 
     @property
     def DATABASE_URL(self) -> str:

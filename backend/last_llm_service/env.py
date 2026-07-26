@@ -61,7 +61,7 @@ class Env:
 
     @property
     def MAX_TOOL_ROUNDS(self) -> int:
-        return self._int('MAX_TOOL_ROUNDS', 10)  # cap so a confused model cannot loop forever
+        return self._int('MAX_TOOL_ROUNDS', 20)  # cap so a confused model cannot loop forever
 
 # Initialize the global instance for all files
 env = Env()
