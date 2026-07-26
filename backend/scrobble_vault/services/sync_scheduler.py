@@ -9,6 +9,30 @@ logger = logging.getLogger(__name__)
 
 _TICK_SECONDS = 10  # how often the interval is re-checked, not how often we sync
 
+def _configured() -> bool:
+    """Both are needed before last.fm will answer anything."""
+    return bool(env.LAST_FM_USERNAME and env.LAST_FM_API_KEY)
+
+async def _sync_once() -> None:
+    """One sync, failures logged and swallowed so the loop outlives them."""
+    try:
+        await sync_scrobble_vault()
+    except Exception:
+        logger.exception("Sync failed, trying again next interval")
+
+async def _wait_until_configured() -> None:
+    """Idle until last.fm details exist, they arrive from the settings page.
+
+    A fresh install has none, and the api has to stay up for the settings page to
+    be reachable at all, so this waits instead of raising.
+    """
+    if _configured():
+        return
+    logger.warning("No Last.fm username or api key yet, open the settings page to add them. Sync is paused.")
+    while not _configured():
+        await asyncio.sleep(_TICK_SECONDS)
+    logger.info("Last.fm details set, starting sync")
+
 async def run_sync_loop() -> None:
     """Sync on startup, then every SYNC_INTERVAL_MINUTES, forever.
 
@@ -17,18 +41,18 @@ async def run_sync_loop() -> None:
     weekly is a fair thing to want. Re-reading the interval each tick is also
     what lets the settings page change it without a restart.
     """
-    await sync_scrobble_vault()
+    await _wait_until_configured()
+    await _sync_once()
     last_run = time.monotonic()
     logger.info(f"Syncing every {env.SYNC_INTERVAL_MINUTES} minutes")
 
     while True:
         await asyncio.sleep(_TICK_SECONDS)
-        if time.monotonic() - last_run < env.SYNC_INTERVAL_MINUTES * 60:
+
+        # Details can be cleared again from the settings page, so re-check
+        if not _configured() or time.monotonic() - last_run < env.SYNC_INTERVAL_MINUTES * 60:
             continue
 
         # last_run moves even on failure, a broken last.fm must not spin the loop
         last_run = time.monotonic()
-        try:
-            await sync_scrobble_vault()
-        except Exception:
-            logger.exception("Scheduled sync failed, retrying next interval")
+        await _sync_once()
