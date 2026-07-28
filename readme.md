@@ -9,18 +9,18 @@
   <img src="https://img.shields.io/badge/Docker%20Compose-ready-8b5cf6.svg" alt="Docker Compose ready">
 </p>
 
-## Last-analyser  
+# Last-analyser  
 An music analyser is designed to analysis your music listerning history locally, even with no internet access, either through Model Context protocal (MCP) or running the agent loop locally, with your local or cloud based LLM model.
 Consisting of two parts, `scrobble_vault` and `last_llm_service`, with a frontend to interact with them.
 
-### Scrobble vault
+## Scrobble vault
 
 The scrobble vault is designed ran 24/7, on a low power usage computer to sync scrobbles from last.fm to a local Postgres datbase.
 It will function as a seperate restful API that can be ran independantly.
 The vault's `/vibed-sql-runner` and `/semantic-search` endpoints used by `last_llm_services` starts by default, turn them off on the settings page if you only need the vault.
 Setting `LLM_ENDPOINTS_ENABLED='false'` in `.env` does the same thing, but you have to recreate the containers after so they pick it up.
 
-### Last LLM service
+## Last LLM service
 
 Designed as an OpenAI API compatible service with a FastAPI wrapper, communicating with scrobble vault over HTTP.
 So it work with both local and  and remote LLM providers.
@@ -99,7 +99,7 @@ To go back to the normal (production style) stack:
 docker compose down && docker compose --profile full up -d
 ```
 
-### Native development (no Docker for the app)
+## Native development (no Docker for the app)
 
 If you prefer running the code directly, only the DB needs Docker.This is the one path that does need a `.env`: outside compose the code defaults to reaching the database at `db`, which only resolves inside the compose network. Copy `.env.example` to `.env` and set `POSTGRES_HOST='localhost'` plus the two database passwords to match your db container.
 
