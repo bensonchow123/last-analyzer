@@ -30,6 +30,13 @@ It has three run modes: `mcp` (MCP server), `api` (chat API for the frontend) an
 The chat UI lives in the frontend at `/`: replies stream in over SSE, tool calls show as activity chips, and conversations stay in your browser (localStorage).
 The browser never talks to the chat API directly, a frontend server route proxies it using `LAST_LLM_API_IPV4` (same meaning as `SCROBBLE_VAULT_IPV4`: the address as seen from the frontend's machine).
 
+## Video DEMO
+
+
+https://github.com/user-attachments/assets/4cb2ab93-7b33-429b-a255-fcd428333ea5
+
+
+
 ## Running it (single machine setup)
 
 1. Clone the repository and cd into it
