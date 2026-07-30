@@ -1,15 +1,15 @@
-# Profiles select which part of the stack runs on a given machine:
-#   docker compose --profile full up             # everything, the single machine install
-#   docker compose --profile scrobble_vault up   # db + scrobble_vault only
-#   docker compose --profile frontend up         # front_end only (vault reached via SCROBBLE_VAULT_IPV4)
-#   docker compose --profile mcp up              # last_llm_mcp only (vault reached via SCROBBLE_VAULT_URL)
-#   docker compose --profile chat up             # last_llm_mcp + last_llm_api + front_end (the chat ui)
-# A --profile flag overrides COMPOSE_PROFILES, narrowing the stack to that role.
+# Every service starts by default:
+#   docker compose up -d                              # the whole stack, one machine
 #
-# Every service lists a profile, so a bare `docker compose up` starts NOTHING unless
-# COMPOSE_PROFILES is set. Compose reads that variable before it parses this file, so
-# unlike everything else here it cannot be given a default. That is why the full
-# install is a --profile flag rather than a bare up.
+# To run only part of it, name the services you want. Each one is a single role,
+# and depends_on pulls in what it genuinely cannot live without:
+#   docker compose up -d scrobble_vault               # vault + its database
+#   docker compose up -d front_end                    # the ui only
+#   docker compose up -d last_llm_mcp last_llm_api    # the llm services only
+#
+# Nothing starts a service on another machine for you: front_end, last_llm_mcp and
+# last_llm_api all reach the vault by address, so a split setup is just a matter of
+# running different services on each box and pointing the addresses at each other.
 #
 # SECURITY: the services have no authentication, so published ports bind to
 # 127.0.0.1 by default. To reach a service from another machine, set the
@@ -20,7 +20,6 @@ services:
     image: pgvector/pgvector:pg18-trixie
     container_name: scrobble_vault_DB
     restart: always
-    profiles: ["full", "scrobble_vault"]
     # Defaults so a fresh clone starts with no .env at all. The DB port binds to
     # 127.0.0.1 and only scrobble_vault reaches it over the compose network, so
     # the default passwords are not exposed. Override them in .env before setting
@@ -55,7 +54,6 @@ services:
       dockerfile: scrobble_vault/Dockerfile
     container_name: scrobble_vault
     restart: unless-stopped
-    profiles: ["full", "scrobble_vault"]
     env_file:
       - path: .env
         required: false # a fresh clone has no .env, everything below has a default
@@ -85,8 +83,6 @@ services:
       context: ./front-end
     container_name: front_end
     restart: unless-stopped
-    # also in chat: the chat UI lives here, so the chat role brings the ui with it
-    profiles: ["full", "frontend", "chat"]
     # Host networking so SCROBBLE_VAULT_IPV4 keeps its normal meaning — the
     # vault's address as seen from this machine (127.0.0.1 when local, another
     # host's address when remote). On a bridge network 127.0.0.1 would point at
@@ -113,8 +109,6 @@ services:
       dockerfile: last_llm_service/Dockerfile
     container_name: last_llm_mcp
     restart: unless-stopped
-    # mcp is on whenever the llm service runs, so both profiles list it
-    profiles: ["full", "mcp", "chat"]
     env_file:
       - path: .env
         required: false
@@ -139,7 +133,6 @@ services:
       dockerfile: last_llm_service/Dockerfile
     container_name: last_llm_api
     restart: unless-stopped
-    profiles: ["full", "chat"]
     env_file:
       - path: .env
         required: false

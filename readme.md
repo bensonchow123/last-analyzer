@@ -40,7 +40,7 @@ https://github.com/user-attachments/assets/4cb2ab93-7b33-429b-a255-fcd428333ea5
 ## Running it (single machine setup)
 
 1. Clone the repository and cd into it
-2. `docker compose --profile full up -d`
+2. `docker compose up -d`
 3. Open `http://localhost:3000`, go to **Settings**, put in your Last.fm username and [API key](https://www.last.fm/api/account/create)
 
 That is it, no files to edit. It starts syncing your scrobbles straight away.
@@ -55,15 +55,26 @@ On one machine you never need a `.env` at all, and `.env.example` is there for t
 
 ## Running only part of it
 
-Profiles pick which parts start:
+Name the services you want. One role each, and nothing starts a service on another machine for you.
 
-| Command                                           | What runs                           |
-| ------------------------------------------------- | ----------------------------------- |
-| `docker compose --profile full up -d`           | everything                          |
-| `docker compose --profile scrobble_vault up -d` | database + scrobble vault           |
-| `docker compose --profile frontend up -d`       | frontend only                       |
-| `docker compose --profile mcp up -d`            | MCP server only                     |
-| `docker compose --profile chat up -d`           | MCP server + chat API + the chat UI |
+| Command                                   | Starts                                | Needs reachable                                        |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `docker compose up -d`                    | everything                            | nothing, it is all here                                |
+| `docker compose up -d scrobble_vault`     | the vault and its database            | nothing                                                |
+| `docker compose up -d front_end`          | the summary and chat pages            | `scrobble_vault`, and `last_llm_api` for the chat page |
+| `docker compose up -d last_llm_mcp`       | the MCP server | `scrobble_vault`                                  |
+| `docker compose up -d last_llm_api`       | the chat API the frontend talks to    | `scrobble_vault`                                       |
+
+Name more than one to combine them, like `docker compose up -d last_llm_mcp last_llm_api`.
+
+Useful when the parts live on different machines. Say a low power box is on all the time and a desktop has the GPU running a local model:
+
+```bash
+docker compose up -d scrobble_vault front_end   # always on box: syncs and serves the pages
+docker compose up -d last_llm_mcp last_llm_api  # desktop: does the thinking
+```
+
+The desktop can be off most of the time. The summary page keeps working without it, only the chat needs it awake. Each machine points at the other through `.env`, which is the next section.
 
 ## Across two machines (to save electricity)
 
@@ -74,7 +85,6 @@ Say the vault runs on a server and the UI on your laptop, over a VPN:
 - on the server, `SCROBBLE_VAULT_BIND_IP` set to its VPN address so the laptop can reach it
 - on the laptop, `SCROBBLE_VAULT_IPV4` set to that same address
 - the same `ADMIN_API_TOKEN` on both, so the settings page is not left open on the VPN
-- `COMPOSE_PROFILES` on each machine listing what that machine runs
 
 After editing `.env`, run `docker compose up -d --force-recreate` so the containers pick it up.
 
@@ -83,7 +93,7 @@ After editing `.env`, run `docker compose up -d --force-recreate` so the contain
 Development uses the same compose file plus an override that bind-mounts the source and runs dev servers, so code edits apply without rebuilding images:
 
 ```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile full up -d
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 ```
 
 What you get:
@@ -96,7 +106,7 @@ What you get:
 To go back to the normal (production style) stack:
 
 ```bash
-docker compose down && docker compose --profile full up -d
+docker compose down && docker compose up -d
 ```
 
 ## Native development (no Docker for the app)
