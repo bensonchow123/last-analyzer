@@ -60,6 +60,7 @@ services:
     environment:
       - POSTGRES_HOST=db # override .env's localhost: inside the compose network the DB is reached by service name
       - SETTINGS_FILE=/data/settings.json # settings page edits, on a volume so they outlive the container
+      - EMBEDDING_CACHE_DIR=/models # fastembed would default to /tmp, which a recreate wipes
       # Must match the db service's defaults above, or the vault cannot connect
       - POSTGRES_DB=${POSTGRES_DB:-scrobble_vault}
       - POSTGRES_SUPER_USER=${POSTGRES_SUPER_USER:-admin}
@@ -69,8 +70,8 @@ services:
     ports:
       - "${SCROBBLE_VAULT_BIND_IP:-127.0.0.1}:${SCROBBLE_VAULT_PORT:-8000}:${SCROBBLE_VAULT_PORT:-8000}"
     volumes:
-      # Cache the sentence-transformers model download across container recreations
-      - hugging_face_cache:/root/.cache/huggingface
+      # Cache the 87MB onnx embedding model across container recreations
+      - embedding_model_cache:/models
       # Settings page overrides. A volume, not the image, so --force-recreate and
       # rebuilds keep them. They win over .env, see backend/scrobble_vault/env.py
       - vault_settings:/data
@@ -147,6 +148,6 @@ services:
 
 volumes:
   scrobble_vault_DB_data:
-  hugging_face_cache:
+  embedding_model_cache:
   vault_settings:
   llm_settings:

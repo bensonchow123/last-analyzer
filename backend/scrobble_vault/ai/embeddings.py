@@ -1,24 +1,30 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Any
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+# Qdrant's onnx export of all-MiniLM-L6-v2.
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-_model: SentenceTransformer | None = None
+# fastembed defaults to /tmp, which a container wipes on every recreate. Point
+# this at a volume so the 87MB download happens once.
+CACHE_DIR = os.getenv('EMBEDDING_CACHE_DIR') or None
+
+_model: TextEmbedding | None = None
 
 
-def get_model() -> SentenceTransformer:
-    """Lazy load the SentenceTransformer model, so the start up time not impacted."""
+def get_model() -> TextEmbedding:
+    """Lazy load the embedding model, so the start up time not impacted."""
     global _model
     if _model is None:
-        logger.info("Loading SentenceTransformer model: %s", MODEL_NAME)
-        _model = SentenceTransformer(MODEL_NAME)
+        logger.info("Loading embedding model: %s", MODEL_NAME)
+        _model = TextEmbedding(model_name=MODEL_NAME, cache_dir=CACHE_DIR)
     return _model
 
 
@@ -43,7 +49,7 @@ def _clean_wiki(text: str | None) -> str | None:
     """Strip the Last.fm attribution link from wiki text."""
     if not text:
         return None
-    
+
     idx = text.find('<a href="https://www.last.fm')
     if idx != -1:
         text = text[:idx]
@@ -134,7 +140,9 @@ def build_track_text(row: dict) -> str:
 def generate_embedding(text: str) -> np.ndarray:
     """Encode a single text string into a 384-dim float32 vector."""
     model = get_model()
-    return model.encode(text, normalize_embeddings=True)
+    # embed() takes a batch and returns a generator, we only ever want one.
+    # float32 to match the vector(384) column, fastembed hands back float64.
+    return next(iter(model.embed([text]))).astype(np.float32)
 
 
 async def generate_embedding_async(text: str) -> np.ndarray:
