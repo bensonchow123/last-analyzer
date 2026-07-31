@@ -1,0 +1,69 @@
+name: Publish images
+
+# Builds the three images and pushes them to ghcr.io, so a server can pull
+# instead of building.
+#
+# Only runs on a version tag.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+" # v1.2.3, not v1.2 or v1.2.3-beta
+  workflow_dispatch: # manual run, tags the result by commit sha only
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # what lets GITHUB_TOKEN push to ghcr
+
+    strategy:
+      fail-fast: false # one image failing should not cancel the others
+      matrix:
+        include:
+          - name: scrobble_vault
+            context: ./backend
+            dockerfile: backend/scrobble_vault/Dockerfile
+          - name: last_llm_service # one image, the mcp and api containers differ only by command
+            context: ./backend
+            dockerfile: backend/last_llm_service/Dockerfile
+          - name: front_end
+            context: ./front-end
+            dockerfile: front-end/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # no PAT needed for the repo's own packages
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          # v1.2.3 publishes 1.2.3, 1.2 and latest, so a server can pin however
+          # loosely it wants. A manual run only gets the sha tag.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          # Bakes the version into the image so a running container can report it
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Without this every run reinstalls the whole dependency layer
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
