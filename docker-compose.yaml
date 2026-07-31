@@ -49,6 +49,9 @@ services:
       retries: 10
 
   scrobble_vault:
+    # Published by .github/workflows/publish.yml. Compose builds this locally when
+    # the tag is not present, so a fresh clone still works without pulling.
+    image: ghcr.io/bensonchow123/last-analyzer/scrobble_vault:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: scrobble_vault/Dockerfile
@@ -80,6 +83,7 @@ services:
         condition: service_healthy
 
   front_end:
+    image: ghcr.io/bensonchow123/last-analyzer/front_end:${IMAGE_TAG:-latest}
     build:
       context: ./front-end
     container_name: front_end
@@ -105,6 +109,8 @@ services:
       - ADMIN_API_TOKEN=${ADMIN_API_TOKEN:-}
 
   last_llm_mcp:
+    # One image, two containers: mcp and api differ only by command:
+    image: ghcr.io/bensonchow123/last-analyzer/last_llm_service:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: last_llm_service/Dockerfile
@@ -129,6 +135,7 @@ services:
     # may live on another machine entirely (ADR-4)
 
   last_llm_api:
+    image: ghcr.io/bensonchow123/last-analyzer/last_llm_service:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: last_llm_service/Dockerfile
