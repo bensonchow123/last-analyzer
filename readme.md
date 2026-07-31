@@ -22,9 +22,9 @@ Its `/vibed-sql-runner` and `/semantic-search` endpoints exist for `last_llm_ser
 
 ## Last LLM service
 
-An OpenAI compatible service behind FastAPI, talking to the vault over HTTP, so it works with local and remote providers alike. The same tools are exposed over MCP if you would rather not use the frontend. Three run modes: `mcp` (MCP server), `api` (chat API for the frontend) and `chat` (terminal REPL for dev).
+An OpenAI API format compatible service behind FastAPI, talking to the vault over HTTP, so it works with local and remote providers alike. The same tools are exposed over MCP if you would rather not use the frontend. 
 
-The chat UI is the frontend's `/` page. Replies stream over SSE, tool calls show as activity chips, and conversations stay in your browser (localStorage). The browser never talks to the chat API directly, a frontend server route proxies it using `LAST_LLM_API_IPV4`.
+The frontend is the `/` page, letting you interact with the agent through a chatbot stream.
 
 ## Video DEMO
 
