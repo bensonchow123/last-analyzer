@@ -1,5 +1,5 @@
 # Development overrides, which merged on top of the base file, never auto-loaded:
-# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile full up
+# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 # Source is bind-mounted into the containers and served by dev servers, so
 # edits on the host take effect without rebuilding images. 
@@ -12,6 +12,9 @@ services:
       - ./backend/scrobble_vault:/app/scrobble_vault
 
   front_end:
+    # Its own tag. Without this the dev stage is saved as the published image
+    # name, and the normal stack finds it, skips the rebuild and runs vite.
+    image: last-analysis-front_end:dev
     build:
       context: ./front-end
       target: dev # toolchain stage: has vite, skips the prod build
