@@ -13,5 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY last_llm_service/ ./last_llm_service/
 
+# changes every release and would bust the layers above it, `dev` for local build
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 # One image, two roles: compose overrides the command for the api container
 CMD ["python", "-m", "last_llm_service.main", "mcp", "--transport", "http"]

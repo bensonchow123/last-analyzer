@@ -135,7 +135,12 @@
 
 	{#each panels as panel (panel.id)}
 		<section class="mt-6 rounded-lg border border-violet-500/50 bg-[#131311] p-4">
-			<h2 class="text-white">{panel.name}</h2>
+			<div class="flex items-baseline gap-2">
+				<h2 class="text-white">{panel.name}</h2>
+				{#if panel.settings}
+					<span class="font-mono text-xs text-white/30">{panel.settings.version}</span>
+				{/if}
+			</div>
 
 			{#if panel.error || !panel.settings}
 				<p class="mt-2 text-sm text-white/50">

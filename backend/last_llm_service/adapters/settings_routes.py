@@ -57,6 +57,7 @@ def _payload() -> dict:
             missing.append(key)
     return {
         "service": SERVICE,
+        "version": env.APP_VERSION,
         "fields": SPEC,
         "values": values,
         "sources": sources,

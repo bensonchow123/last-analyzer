@@ -29,6 +29,9 @@ class Env:
         # Sync settings
         self.SCROBBLE_VAULT_PORT = int(os.getenv('SCROBBLE_VAULT_PORT', 8000))
 
+        # Stamped into the image at build time, 'dev' for a local build
+        self.APP_VERSION = os.getenv('APP_VERSION', 'dev')
+
         # Bearer token for /settings, unset leaves the endpoints disabled.
         # Deliberately not editable through the api, it is what guards the api.
         self.ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN')

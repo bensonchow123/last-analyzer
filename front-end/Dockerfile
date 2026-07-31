@@ -32,4 +32,8 @@ COPY --from=build /app/build ./build
 ENV PORT=3000 \
     HOST=0.0.0.0
 
+# changes every release and would bust the layers above it, `dev` for local build
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 CMD ["node", "build"]

@@ -13,4 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY scrobble_vault/ ./scrobble_vault/
 
+# changes every release and would bust the layers above it, `dev` for local build
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 CMD ["python", "-m", "scrobble_vault.main"]

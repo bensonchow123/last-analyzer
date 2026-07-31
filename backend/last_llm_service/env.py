@@ -28,6 +28,9 @@ class Env:
         self.LAST_LLM_MCP_PORT = int(os.getenv('LAST_LLM_MCP_PORT', 8001))
         self.LAST_LLM_API_PORT = int(os.getenv('LAST_LLM_API_PORT', 8002))
 
+        # Stamped into the image at build time, 'dev' for a local build
+        self.APP_VERSION = os.getenv('APP_VERSION', 'dev')
+
         # Bearer token for /settings, unset leaves the endpoints disabled.
         # Deliberately not editable through the api, it is what guards the api.
         self.ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN')

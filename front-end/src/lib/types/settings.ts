@@ -25,6 +25,7 @@ export type SettingSource = 'env' | 'settings';
 
 export type ServiceSettings = {
 	service: string;
+	version: string; // image tag it was built from, 'dev' for a local build
 	fields: SettingField[];
 	values: Record<string, SettingValue>;
 	sources: Record<string, SettingSource>;
