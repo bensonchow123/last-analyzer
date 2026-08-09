@@ -5,7 +5,8 @@ import os
 from typing import Any
 
 import numpy as np
-from fastembed import TextEmbedding
+
+from scrobble_vault.env import env
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +17,16 @@ MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 # this at a volume so the 87MB download happens once.
 CACHE_DIR = os.getenv('EMBEDDING_CACHE_DIR') or None
 
-_model: TextEmbedding | None = None
+_model = None
 
 
-def get_model() -> TextEmbedding:
+def get_model():
     """Lazy load the embedding model, so the start up time not impacted."""
     global _model
     if _model is None:
+        # Imported here so a vault with embeddings off never pulls in onnxruntime.
+        from fastembed import TextEmbedding
+
         logger.info("Loading embedding model: %s", MODEL_NAME)
         _model = TextEmbedding(model_name=MODEL_NAME, cache_dir=CACHE_DIR)
     return _model
@@ -137,16 +141,20 @@ def build_track_text(row: dict) -> str:
     return ". ".join(parts)
 
 
-def generate_embedding(text: str) -> np.ndarray:
+def generate_embedding(text: str) -> np.ndarray | None:
     """Encode a single text string into a 384-dim float32 vector."""
+    if not env.EMBEDDINGS_ENABLED:
+        return None
     model = get_model()
     # embed() takes a batch and returns a generator, we only ever want one.
     # float32 to match the vector(384) column, fastembed hands back float64.
     return next(iter(model.embed([text]))).astype(np.float32)
 
 
-async def generate_embedding_async(text: str) -> np.ndarray:
+async def generate_embedding_async(text: str) -> np.ndarray | None:
     """
     Use thread pool to run the embedding so the asynic loop is not blocked.
+
+    None when embeddings are off, rows then store a null vector.
     """
     return await asyncio.to_thread(generate_embedding, text)

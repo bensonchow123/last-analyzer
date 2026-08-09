@@ -36,6 +36,11 @@ class Env:
         # Deliberately not editable through the api, it is what guards the api.
         self.ADMIN_API_TOKEN = os.getenv('ADMIN_API_TOKEN')
 
+        # Set false on a machine that cannot spare the ram for the model. Sync
+        # keeps working, rows just get a null vector and semantic search 404s.
+        # Not on the settings page, loading the model is a restart level choice.
+        self.EMBEDDINGS_ENABLED = os.getenv('EMBEDDINGS_ENABLED', 'true').lower() != 'false'
+
         # PostgreSQL connection (admin)
         self.POSTGRES_USER = os.getenv('POSTGRES_SUPER_USER', 'admin')
         self.POSTGRES_PASSWORD = os.getenv('POSTGRES_SUPER_USER_PASSWORD')
