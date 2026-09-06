@@ -2,16 +2,23 @@
 # docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 # Source is bind-mounted into the containers and served by dev servers, so
-# edits on the host take effect without rebuilding images. 
-# Profiles, ports, env and the db service are inherited from docker-compose.yaml.
+# edits on the host take effect without rebuilding images.
+# Profiles, ports and env are inherited from docker-compose.yaml.
+
+# Every service restart: "no" so crash stays visible and stop it running on my laptop on boot.
 services:
+  db:
+    restart: "no"
+
   scrobble_vault:
+    restart: "no"
     # watchfiles restarts the whole app (sync loop + API) on any .py change.
     command: ["watchfiles", "python -m scrobble_vault.main", "scrobble_vault"]
     volumes:
       - ./backend/scrobble_vault:/app/scrobble_vault
 
   front_end:
+    restart: "no"
     # Its own tag. Without this the dev stage is saved as the published image
     # name, and the normal stack finds it, skips the rebuild and runs vite.
     image: last-analysis-front_end:dev
@@ -26,12 +33,14 @@ services:
       - /app/node_modules # keep the image's node_modules over the host's
 
   last_llm_mcp:
+    restart: "no"
     # watchfiles also picks up prompts/*.json edits, prompts are data not code
     command: ["watchfiles", "python -m last_llm_service.main mcp --transport http", "last_llm_service"]
     volumes:
       - ./backend/last_llm_service:/app/last_llm_service
 
   last_llm_api:
+    restart: "no"
     command: ["watchfiles", "python -m last_llm_service.main api", "last_llm_service"]
     volumes:
       - ./backend/last_llm_service:/app/last_llm_service
